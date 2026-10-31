@@ -43,7 +43,7 @@ Suite exécutée avec Python 3.14 et les dépendances déjà installées. La com
 python -m pytest -q --basetemp=C:/aldines/.local/pytest-run-04
 ```
 
-**26 tests réussis**, incluant les paramètres de validation JSON et les tests privés du corpus réel. Dernière exécution après les retouches : `pytest-final-06`, 26 réussites en 11,89 secondes. Versions présentes : lxml 6.1.3, PySide6 6.11.1, pytest 9.0.3, Playwright 1.61.0. Le moteur et l’interface représentent environ 1 400 lignes Python, hors tests et ressources.
+**26 tests réussis**, incluant les paramètres de validation JSON et les tests privés du corpus réel. Dernière exécution : `pytest-final-07`, 26 réussites en 13,26 secondes ; les chaînes synthétiques des tests ont aussi été simplifiées pour rester compatibles avec Python 3.11. Versions présentes : lxml 6.1.3, PySide6 6.11.1, pytest 9.0.3, Playwright 1.61.0. Le moteur et l’interface représentent environ 1 400 lignes Python, hors tests et ressources.
 
 Tests publics : projet/JSON, priorités de métadonnées, ordre maître différent de l’ordre des noms, inclusions imbriquées/absentes/cycliques, XML mal formé, refus des entités et ressources externes, identifiants dupliqués, références invalides, alignement, conservation du texte inconnu, échappement HTML, notes/manchettes, repères au milieu d’un mot, grec et ligatures, référence HTML attendue, navigation, liens entre unités et ancres, sous-répertoire, sélection, préservation des sources et de la publication antérieure.
 
@@ -81,6 +81,8 @@ Captures dans `.local/screenshots` : accueil, lecteur de bureau, grec, thème so
 - `.local/source-hashes.json` : empreintes des originaux avant le développement.
 - `.local/reference-golden.json` : attentes textuelles figées de passages réels.
 - Code moteur, atelier Qt, lanceur Windows, tests synthétiques et documentation : seuls fichiers destinés à la branche distante.
+
+Le commit d’implémentation `c9d2c09` a été poussé sur `origin/dev` dans le dépôt fourni. La branche locale suit `origin/dev`. Aucun texte du corpus, rapport scientifique, capture ou site généré ne figure dans ce commit ; seuls les noms d’unités nécessaires aux essais et les métadonnées publiques du projet sont présents. La branche `main` reste au commit initial. Un second commit de documentation consigne les résultats finaux.
 
 ## Limites connues et travail restant
 
