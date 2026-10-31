@@ -1,0 +1,68 @@
+# Studio Aldines
+
+Atelier de bureau Python/Qt pour l’édition numérique bilingue de l’*Augustinus* de Cornelius Jansenius. Première version utilisable, développée à partir des 97 fichiers TEI réellement disponibles le 31 octobre 2026.
+
+Le moteur fonctionne sans Qt. Il génère un site statique autonome, avec sommaire, trois modes de lecture, notes consultables, ancres TEI, navigation et recherche latine/française. L’application ne modifie jamais les TEI et ne met rien en ligne.
+
+## Installation et lancement sous Windows
+
+Depuis PowerShell, dans le dépôt :
+
+```powershell
+cd C:\aldines
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[gui,test]"
+.\.venv\Scripts\python.exe -m aldines gui aldines.json
+```
+
+Python 3.11 ou supérieur. Dépendances : `lxml` ; `PySide6` pour l’interface ; `pytest` pour les tests. Aucun navigateur intégré, framework web, base de données ni service distant. Une fois les dépendances installées, on peut aussi double-cliquer sur `Lancer-Studio-Aldines.cmd`.
+
+Sur l’ordinateur de développement, les dépendances sont déjà présentes dans Python 3.14 : `python -m aldines gui aldines.json` fonctionne directement.
+
+## Premier projet Augustinus
+
+Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Drive/Augustinus/tei/t1`. Il écrit uniquement dans `C:/aldines/publication`. Adapter ces chemins sur un autre ordinateur.
+
+1. **Projet** : ouvrir ce JSON, ou créer un projet depuis un dossier TEI en désignant son fichier maître. Enregistrer le JSON hors du dossier TEI. Les métadonnées laissées vides sont complétées par les en-têtes ; leurs valeurs apparaissent en indication dans les champs.
+2. **Corpus** : recharger et contrôler ; cocher les unités à publier. L’ordre suit exclusivement les inclusions du maître. Une inclusion absente produit un avertissement ; les livres encore absents du maître ne sont pas des erreurs.
+3. **Présentation** : choisir langues, typographie, thème et repères ; enregistrer les réglages.
+4. **Prévisualisation** : sélectionner une unité et générer l’aperçu. Il s’ouvre dans le navigateur via un petit serveur limité à `127.0.0.1` ; il reste actif tant que l’application est ouverte.
+5. **Publication** : choisir un dossier dédié, générer toutes les unités sélectionnées et consulter le journal. « Ouvrir le site » lance l’aperçu local, sans déploiement.
+
+Un astérisque dans le titre indique les réglages non enregistrés. Une génération utilise les réglages actuellement affichés, même avant sauvegarde ; **enregistrer** le projet pour pouvoir reproduire ce rendu en ligne de commande. Le dossier de sortie doit être vide ou avoir déjà été généré par Aldines : son contenu sera remplacé lors des générations suivantes.
+
+## Ligne de commande
+
+```powershell
+python -m aldines check aldines.json
+python -m aldines build aldines.json
+python -m aldines build aldines.json --unit t1.l01.s01 --output preview
+python -m aldines serve publication --port 8000
+```
+
+Consulter ensuite `http://127.0.0.1:8000/`. L’aperçu HTTP est recommandé plutôt que le double-clic sur un fichier HTML : les liens utilisent les URL de répertoires (`t1/l1/s01/`). La commande `serve` ne sert que le dossier explicitement indiqué et écoute sur la boucle locale.
+
+`check` ne produit aucun fichier ; son code de sortie vaut 1 en présence d’erreurs bloquantes, 0 sinon. `build` conserve le site précédent en cas d’échec de lecture ou de transformation. Les avertissements n’interdisent pas la publication. Le rapport est écrit dans `publication/build-report.json` ; ce rapport porte sur tout le corpus chargé, y compris les unités non sélectionnées.
+
+## Ajouter du texte et publier
+
+Ajouter un fichier TEI conforme aux conventions de l’Augustinus, puis son `xi:include` à la place voulue dans le maître, avec votre outil de travail habituel. Recharger le corpus et régénérer. Aldines n’ajoute pas lui-même d’inclusions et ne corrige pas les sources.
+
+Le site est constitué uniquement de HTML, CSS et JavaScript. Après validation scientifique et autorisation de diffusion, copier **le contenu du dossier de publication** sur un hébergement statique. Les liens relatifs fonctionnent à la racine et sous `/augustinus/` ou un autre répertoire ; renseigner `publication.base_path` pour consigner ce montage. `.nojekyll` est fourni pour un éventuel hébergement GitHub Pages. Aucun workflow de déploiement n’est installé.
+
+EB Garamond est employée lorsqu’elle est installée sur l’appareil de lecture ; sinon Garamond ou Georgia prend le relais. Le grec dispose de polices de repli spécifiques. Aucune police n’est téléchargée à l’ouverture du site. Les notes, modes de lecture et recherche utilisent JavaScript.
+
+## Tests et documentation
+
+```powershell
+python -m pytest -q
+# Dans un environnement restreignant le dossier temporaire Windows :
+python -m pytest -q --basetemp=C:/aldines/.local/pytest-manuel
+```
+
+Le dernier chemin doit être réservé aux tests : pytest le nettoie. Les tests publics utilisent des textes synthétiques. Les tests du corpus réel sont facultatifs et nécessitent la copie privée `.local/reference` et son projet `.local/aldines.json` ; ils sont ignorés sur une installation sans corpus privé. Les essais navigateur supplémentaires sont décrits dans le journal de développement.
+
+- [Examen initial, architecture et JSON](docs/architecture.md)
+- [Journal, résultats et limites de cette version](docs/developpement.md)
+
+Le code est sous la licence MIT déjà présente dans le dépôt. Cette licence n’attribue aucun droit sur le corpus, ses traductions ou ses annotations. Les TEI, les copies de référence, les captures et le site généré sont exclus de Git. `a-verifier.md` n’est jamais lu par le programme, publié ou utilisé pour corriger les textes.

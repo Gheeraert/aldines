@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "corpus": {
+    "id": "augustinus",
+    "title": "Augustinus",
+    "subtitle": "Édition numérique bilingue · Tome I",
+    "author": "Cornelius Jansenius",
+    "editor": "Tony Gheeraert",
+    "contributors": [],
+    "institution": "Université de Rouen Normandie",
+    "laboratory": "CEREdI",
+    "description": "Transcription, traduction française et annotation scientifique de l’Augustinus (1640). Cette édition en cours de constitution donne accès aux unités actuellement établies.",
+    "source_edition": "Louvain, typis Iacobi Zegeri, 1640, tome I.",
+    "languages": ["la", "fr", "grc"],
+    "status": "Édition provisoire en cours de révision",
+    "publication_date": null,
+    "version": "0.1",
+    "license": null,
+    "citation": null,
+    "identifiers": []
+  },
+  "sources": {
+    "directory": "G:/Mon Drive/Augustinus/tei/t1",
+    "master": "G:/Mon Drive/Augustinus/tei/t1/aug-t1.xml",
+    "selection": null
+  },
+  "reading": {
+    "default_mode": "bilingual",
+    "show_marginalia": true,
+    "show_notes": true,
+    "show_page_numbers": true,
+    "show_column_markers": true,
+    "show_uncertainties": true,
+    "show_sentence_ids": false
+  },
+  "appearance": {
+    "theme": "light",
+    "font": "EB Garamond",
+    "font_size": 20,
+    "line_height": 1.65,
+    "content_width": 1200,
+    "column_ratio": 50
+  },
+  "publication": {
+    "output": "publication",
+    "base_path": "/"
+  }
+}

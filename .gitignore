@@ -1,0 +1,17 @@
+.idea/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.local/
+publication/
+preview/
+aldines.local.json
+# Corpus et sorties scientifiques : ne jamais les pousser par inadvertance.
+*.xml
+*.html
+*.pdf
+*.docx
