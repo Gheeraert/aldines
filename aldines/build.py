@@ -59,18 +59,14 @@ def page(project, meta, title, body, current="", reader=False):
            f"--leading:{a['line_height']};--measure:{a['content_width']}px;--ratio:{a['column_ratio']}%;}}")
     options = "".join(f'<option value="{value}"{" selected" if reading["default_mode"] == value else ""}>{label}</option>'
                       for value, label in [("bilingual", "Latin · Français"), ("latin", "Latin"), ("french", "Français")])
-    toolbar = '<div class="reader-tools">'
-    if reader:
-        toolbar += f'<label>Lecture <select id="reading-mode">{options}</select></label>'
+    toolbar = f'<div class="reader-tools"><label>Lecture <select id="reading-mode">{options}</select></label>'
     toolbar += '<button id="reader-options" aria-expanded="false" aria-controls="display-options">Options d’affichage</button></div>'
-    alignment_options = ''.join(f'<option value="{value}"{" selected" if a["text_align"] == value else ""}>{label}</option>'
-                                for value, label in [("left", "Aligné à gauche"), ("justify", "Justifié")])
     panel = f'''<fieldset id="display-options" hidden><legend>Options d’affichage</legend>
-<label>Alignement du texte <select id="text-alignment">{alignment_options}</select></label>{''.join(
+{''.join(
         f'<label><input type="checkbox" data-option="{key[5:].replace("_", "-")}" {"checked" if reading[key] else ""}> {label}</label>'
         for key, label in [("show_notes", "Notes"), ("show_marginalia", "Manchettes"),
                            ("show_page_numbers", "Pages"), ("show_column_markers", "Colonnes et sections imprimées"),
-                           ("show_uncertainties", "Signalement des incertitudes"), ("show_sentence_ids", "Identifiants des phrases")]) if reader else ''}</fieldset>'''
+                           ("show_uncertainties", "Signalement des incertitudes"), ("show_sentence_ids", "Identifiants des phrases")])}</fieldset>'''
     return f'''<!doctype html>
 <html lang="fr" data-theme="{a['theme']}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Studio Aldines 0.1">

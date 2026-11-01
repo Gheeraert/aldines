@@ -18,6 +18,19 @@ def source_hashes(project):
     return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in project.directory.glob("*.xml")}
 
 
+def test_complete_reading_controls_on_every_page_and_editor_alignment(project):
+    project.data['appearance']['text_align'] = 'justify'
+    result = build(project)
+    for path in result.output.rglob('index.html'):
+        doc = html.parse(str(path))
+        assert doc.xpath('//label[select[@id="reading-mode"]]')
+        assert doc.xpath('//select[@id="reading-mode"]/option/@value') == ['bilingual', 'latin', 'french']
+        assert len(doc.xpath('//fieldset[@id="display-options"]//input[@data-option]')) == 6
+        assert doc.xpath('//button[@id="reader-options"]/text()') == ['Options d’affichage']
+        assert not doc.xpath('//select[@id="text-alignment"]')
+        assert doc.xpath('//body/@data-alignment') == ['justify']
+
+
 def test_project_roundtrip_and_metadata_priority(project):
     loaded = load_project(project.path)
     assert loaded.master == project.directory / "master.xml"

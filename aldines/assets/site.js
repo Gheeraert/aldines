@@ -15,16 +15,6 @@
   };
   const theme = storage.get('theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-  function alignText(value) {
-    body.dataset.alignment = value;
-    if (one('#text-alignment')) one('#text-alignment').value = value;
-  }
-  const alignment = storage.get('alignment');
-  if (alignment === 'left' || alignment === 'justify') alignText(alignment);
-  one('#text-alignment')?.addEventListener('change', e => {
-    alignText(e.target.value);
-    storage.set('alignment', e.target.value);
-  });
   one('#theme-toggle')?.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -38,15 +28,29 @@
     body.dataset.mode = mode;
     if (visible) window.scrollBy(0, visible.getBoundingClientRect().top - offset);
   }
-  one('#reading-mode')?.addEventListener('change', e => changeMode(e.target.value));
+  const mode = storage.get('reading-mode');
+  if (['bilingual', 'latin', 'french'].includes(mode)) {
+    body.dataset.mode = mode;
+    one('#reading-mode').value = mode;
+  }
+  one('#reading-mode')?.addEventListener('change', e => {
+    changeMode(e.target.value);
+    storage.set('reading-mode', e.target.value);
+  });
   one('#reader-options')?.addEventListener('click', e => {
     const panel = one('#display-options');
     panel.hidden = !panel.hidden;
     e.target.setAttribute('aria-expanded', String(!panel.hidden));
   });
-  document.querySelectorAll('[data-option]').forEach(input => input.addEventListener('change', () => {
+  document.querySelectorAll('[data-option]').forEach(input => {
+    const saved = storage.get('show-' + input.dataset.option);
+    if (saved === 'true' || saved === 'false') input.checked = saved === 'true';
     body.classList.toggle('hide-' + input.dataset.option, !input.checked);
-  }));
+    input.addEventListener('change', () => {
+      body.classList.toggle('hide-' + input.dataset.option, !input.checked);
+      storage.set('show-' + input.dataset.option, String(input.checked));
+    });
+  });
   document.querySelectorAll('.note-call').forEach((button, index) => {
     const note = button.nextElementSibling;
     note.classList.add(button.closest('.marginalia') ? 'marginalia-content' : 'editorial-note');

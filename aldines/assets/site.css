@@ -198,7 +198,7 @@ h3 {
   margin:0 0 8px
 }
 .hero h1 {
-  font-size:clamp(40px,4.5vw,60px);
+  font-size:clamp(30px,2.3vw,32px);
   margin:8px 0
 }
 .subtitle {

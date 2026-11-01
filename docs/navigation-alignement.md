@@ -1,12 +1,12 @@
 # Commandes regroupées, alignement et navigation hiérarchique
 
-Suite de la révision sur la branche locale `css`, depuis `44d2aee`. Modifications non commitées et non poussées. Les modifications préexistantes de `.gitignore` et `aldines.json` sont conservées ; aucune modification des TEI, de `Sources/` ou de la publication existante.
+Suite de la révision sur la branche locale `css`, depuis `44d2aee`, livrée dans `2bd29e9`, puis corrigée après signalement des régressions (voir `correctif-commandes.md`). Les corrections actuelles sont locales, non commitées et non poussées. Les modifications préexistantes de `.gitignore` et `aldines.json` sont conservées ; aucune modification des TEI, de `Sources/` ou de la publication existante.
 
 ## En-tête commun
 
 Le gabarit `page()` regroupe la navigation principale et les commandes de lecture dans l’en-tête. Sur les pages d’édition, Sommaire, Rechercher, Clair / sombre, Lecture, la sélection de langue et Options d’affichage tiennent sur une ligne à 1280 et 1440 px. La hauteur mesurée est de 76 px, contre 133 px pour l’en-tête et la barre de lecture précédents.
 
-Sur écran étroit, les groupes passent à la ligne et les commandes gardent une hauteur minimale de 44 px. Le bouton « Affichage » est renommé « Options d’affichage ». Il est aussi disponible sur l’accueil et le sommaire, pour y régler l’alignement. Les options concernant les annotations restent propres aux pages d’édition.
+Sur écran étroit, les groupes passent à la ligne et les commandes gardent une hauteur minimale de 44 px. Le bouton « Affichage » est renommé « Options d’affichage ». Après correction, toutes les pages proposent le bandeau complet, les trois modes de lecture et les six options éditoriales. Les choix de lecture sont mémorisés pour s’appliquer lors du passage d’une page à l’autre.
 
 L’en-tête des pages d’édition reste fixe pendant le défilement. Sa hauteur est mesurée par un `ResizeObserver` pour réserver l’espace nécessaire aux sauts vers les ancres. Le maintien de la position pendant un changement de langue se réfère désormais au bas de cet en-tête complet.
 
@@ -14,7 +14,7 @@ L’en-tête des pages d’édition reste fixe pendant le défilement. Sa hauteu
 
 Nouveau paramètre JSON : `appearance.text_align`, avec les valeurs `left` et `justify`. La valeur par défaut est `left` ; les projets existants restent compatibles. Le projet personnel `aldines.json` n’a pas été réécrit.
 
-Le panneau Présentation de l’atelier Qt propose « Alignement du texte et des présentations ». La valeur est enregistrée dans le JSON et appliquée aux pages générées. Le lecteur peut ensuite modifier ce choix dans Options d’affichage : sa préférence est mémorisée dans le stockage local du navigateur et appliquée aux pages suivantes sur la même origine web. Elle prend le pas sur le choix initial du projet.
+Le panneau Présentation de l’atelier Qt propose « Alignement du texte et des présentations ». La valeur est enregistrée dans le JSON et appliquée aux pages générées. Après correction, ce choix appartient exclusivement à l’éditeur : aucun sélecteur d’alignement n’est proposé dans le site et les anciennes préférences d’alignement du navigateur sont ignorées.
 
 L’alignement concerne les phrases latines/françaises, l’introduction et les paragraphes de présentation et de notice scientifique. Les titres, commandes de navigation, notes et manchettes conservent leur présentation. Aucun changement des textes, de leur alignement bilingue ou de leurs identifiants.
 

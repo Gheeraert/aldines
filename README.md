@@ -31,7 +31,7 @@ Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Dri
 
 Un astérisque dans le titre indique les réglages non enregistrés. Une génération utilise les réglages actuellement affichés, même avant sauvegarde ; **enregistrer** le projet pour pouvoir reproduire ce rendu en ligne de commande. Le dossier de sortie doit être vide ou avoir déjà été généré par Aldines : son contenu sera remplacé lors des générations suivantes.
 
-Dans le site, l’en-tête réunit navigation et commandes de lecture. « Options d’affichage » permet de choisir l’alignement ; cette préférence du lecteur est conservée dans son navigateur et prend le pas sur le réglage initial du projet. Le sommaire propose trois sélections liées : tome, livre et section/chapitre, avec les nombres de phrases et de traductions, puis « Ouvrir le texte ». La dernière sélection est mémorisée. Une liste complète dépliable reste disponible, y compris sans JavaScript.
+Dans le site, toutes les pages présentent le bandeau complet : Sommaire, Rechercher, Clair / sombre, Lecture et son menu latin/français/bilingue, Options d’affichage. Ce dernier contient les six réglages de notes, manchettes, pages, colonnes, incertitudes et identifiants. Les préférences de lecture sont conservées dans le navigateur. L’alignement à gauche ou justifié est exclusivement décidé dans Studio Aldines, puis appliqué par la génération. Le sommaire propose trois sélections liées : tome, livre et section/chapitre, avec les nombres de phrases et de traductions, puis « Ouvrir le texte ». La dernière sélection est mémorisée. Une liste complète dépliable reste disponible, y compris sans JavaScript.
 
 ## Ligne de commande
 
