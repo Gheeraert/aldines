@@ -12,6 +12,7 @@
   --text-size:20px;
   --leading:1.65;
   --ratio:50%;
+  --page-gutter:32px;
   color-scheme:light
 }
 :root[data-theme=dark] {
@@ -78,30 +79,30 @@ button:hover {
 .site-header {
   max-width:1440px;
   margin:auto;
-  min-height:108px;
-  padding:24px 42px;
+  min-height:76px;
+  padding:10px 32px;
   display:flex;
   justify-content:space-between;
   align-items:center;
   border-bottom:1px solid var(--line);
-  gap:2rem
+  gap:20px
 }
 .brand {
   display:flex;
   align-items:center;
-  gap:15px;
+  gap:12px;
   text-decoration:none;
-  font:30px var(--reading-font);
+  font:28px var(--reading-font);
   color:var(--ink)
 }
 .brand small {
   display:block;
-  font:9px/2.2 system-ui;
+  font:9px/1.6 system-ui;
   letter-spacing:.19em;
   color:var(--muted)
 }
 .printer-mark {
-  font:44px Georgia;
+  font:36px Georgia;
   line-height:1;
   border:1px solid var(--accent);
   color:var(--accent);
@@ -109,19 +110,41 @@ button:hover {
 }
 .site-header nav {
   display:flex;
-  gap:24px;
+  gap:16px;
   align-items:center;
   font-size:14px
 }
 .site-header nav a {
+  display:inline-flex;
+  align-items:center;
+  min-height:40px;
   text-decoration:none;
   color:var(--ink)
+}
+.site-header nav button {
+  min-height:40px
 }
 main {
   max-width:var(--measure);
   margin:auto;
-  padding:44px 32px 72px;
+  padding:44px var(--page-gutter) 72px;
   min-height:65vh
+}
+/* Espacements des pages de présentation, sans modifier le texte édité. */
+.home-page,.contents-page {
+  padding-top:24px;
+  padding-bottom:40px
+}
+.edition-page {
+  padding-top:16px;
+  padding-bottom:48px
+}
+.edition-page>.eyebrow,.contents-page>.eyebrow {
+  margin:8px 0 4px
+}
+.edition-page>h1,.contents-page>h1 {
+  font-size:clamp(28px,2.5vw,36px);
+  margin:6px 0 12px
 }
 h1,h2,h3 {
   font-family:var(--reading-font);
@@ -145,36 +168,41 @@ h3 {
   color:var(--accent)
 }
 .hero {
-  padding:48px 0 72px;
+  padding:8px 0 28px;
   max-width:780px
 }
+.hero>.eyebrow {
+  margin:0 0 8px
+}
 .hero h1 {
-  font-size:clamp(64px,9vw,108px);
-  margin:22px 0 8px
+  font-size:clamp(40px,4.5vw,60px);
+  margin:8px 0
 }
 .subtitle {
-  font:30px/1.3 var(--reading-font);
+  font:clamp(22px,2.2vw,27px)/1.3 var(--reading-font);
   color:var(--muted);
-  margin-top:10px
+  margin:6px 0 14px
 }
 .description {
-  font:22px/1.65 var(--reading-font);
+  font:21px/1.5 var(--reading-font);
   max-width:670px;
-  white-space:pre-line
+  white-space:pre-line;
+  margin:12px 0
 }
 .primary {
   display:inline-flex;
-  gap:35px;
+  gap:24px;
   background:var(--accent);
   color:var(--paper);
-  padding:14px 22px;
+  padding:10px 18px;
   text-decoration:none;
-  margin:24px 0 15px;
+  margin:10px 0 8px;
   border-radius:3px
 }
 .edition-state {
   font-size:12px;
-  color:var(--muted)
+  color:var(--muted);
+  margin:8px 0 0
 }
 .project-details {
   border-top:1px solid var(--line);
@@ -196,33 +224,57 @@ dd {
 }
 .contents-list {
   padding:0;
+  margin:8px 0 20px;
   list-style:none;
   border-top:1px solid var(--line)
 }
 .contents-list li {
   display:flex;
   justify-content:space-between;
-  gap:20px;
-  padding:13px 8px;
+  align-items:baseline;
+  gap:12px;
+  padding:4px 8px;
   border-bottom:1px solid var(--line)
 }
 .contents-list a {
-  font:23px var(--reading-font);
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  font:21px/1.25 var(--reading-font);
   text-decoration:none
 }
 .contents-list span {
   font-size:12px;
   color:var(--muted)
 }
+.contents-page>p:not(.eyebrow) {
+  margin:8px 0 16px
+}
+.contents-page>h2 {
+  font-size:28px;
+  margin:16px 0 8px
+}
+.contents-page>h3 {
+  font-size:22px;
+  margin:12px 0 6px
+}
 .reader-tools {
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
   display:flex;
   justify-content:flex-end;
   align-items:center;
   gap:12px;
   max-width:var(--measure);
-  margin:24px auto 0;
-  padding:0 32px;
+  margin:8px auto 0;
+  padding:6px var(--page-gutter);
   font-size:13px
+}
+.reader-tools select,.reader-tools button {
+  min-height:36px
 }
 .reader-tools label {
   display:flex;
@@ -231,34 +283,41 @@ dd {
 }
 #display-options {
   max-width:var(--measure);
-  margin:20px auto 0;
+  margin:8px auto 0;
   border:1px solid var(--line);
-  padding:15px 25px;
+  padding:8px var(--page-gutter);
   font-size:13px
 }
 #display-options label {
   display:inline-flex;
   gap:8px;
-  margin:8px 20px 8px 0
+  min-height:32px;
+  margin:4px 16px 4px 0
 }
 .breadcrumb {
   font-size:12px;
   color:var(--muted);
-  margin-bottom:30px
+  margin:0 0 8px
 }
 .unit-nav {
   display:flex;
-  gap:20px;
+  flex-wrap:wrap;
+  gap:8px 16px;
   justify-content:space-between;
   border-top:1px solid var(--line);
-  padding:16px 0;
+  padding:6px 0;
   font-size:13px;
-  margin:20px 0
+  margin:12px 0
+}
+.unit-nav a {
+  display:inline-flex;
+  align-items:center;
+  min-height:32px
 }
 .language-headings {
   display:grid;
   grid-template-columns:var(--ratio) 1fr;
-  padding:20px 0 12px;
+  padding:8px 0 4px;
   letter-spacing:.15em;
   text-transform:uppercase;
   font-size:10px;
@@ -477,30 +536,39 @@ footer p {
   }
 }
 @media(max-width:700px) {
+  :root {
+    --page-gutter:20px
+  }
   .site-header {
-    padding:20px;
-    gap:16px;
+    padding:10px 20px;
+    gap:6px;
     align-items:flex-start;
     flex-direction:column
   }
   .site-header nav {
-    gap:18px;
+    flex-wrap:wrap;
+    gap:16px;
     font-size:12px
+  }
+  .site-header nav a,.site-header nav button {
+    min-height:44px
   }
   .brand {
     font-size:27px
   }
   main {
-    padding:30px 20px 45px
+    padding:30px var(--page-gutter) 45px
   }
   h1 {
     font-size:38px
   }
-  .hero {
-    padding:15px 0 45px
+  .home-page,.contents-page {
+    padding-top:16px;
+    padding-bottom:32px
   }
-  .subtitle {
-    font-size:25px
+  .edition-page {
+    padding-top:12px;
+    padding-bottom:32px
   }
   .description {
     font-size:20px
@@ -513,11 +581,22 @@ footer p {
     margin-bottom:15px
   }
   .contents-list span {
-    font-size:10px
+    font-size:11px
+  }
+  .contents-list li {
+    gap:8px;
+    padding:0 4px
+  }
+  .contents-list a {
+    min-height:44px
   }
   .reader-tools {
-    padding:0 20px;
-    justify-content:flex-start
+    margin-top:4px;
+    justify-content:flex-start;
+    flex-wrap:wrap
+  }
+  .reader-tools select,.reader-tools button {
+    min-height:44px
   }
   .aligned-row {
     grid-template-columns:1fr;
@@ -551,23 +630,17 @@ footer p {
     flex-basis:100%
   }
   .unit-nav {
-    font-size:11px;
+    font-size:12px;
     gap:12px
+  }
+  .unit-nav a {
+    min-height:44px
   }
   footer {
     padding:25px 20px
   }
 }
-/* Lecture continue et annotations en fin de phrase. */
-.reader-tools {
-  position:sticky;
-  top:0;
-  z-index:5;
-  background:var(--bg);
-  padding-top:12px;
-  padding-bottom:12px;
-  border-bottom:1px solid var(--line)
-}
+/* Annotations en fin de phrase : styles du texte édité conservés. */
 .aligned-row.block>.latin,.aligned-row.block>.french {
   padding-top:2px;
   padding-bottom:2px

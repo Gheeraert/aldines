@@ -50,6 +50,7 @@ def link(current, target=""):
 
 def page(project, meta, title, body, current="", reader=False):
     root = link(current)
+    page_class = "edition-page" if reader else {"": "home-page", "contents/": "contents-page"}.get(current, "")
     a = project.data["appearance"]
     reading = project.data["reading"]
     classes = " ".join("hide-" + key[5:].replace("_", "-") for key, value in reading.items()
@@ -77,7 +78,7 @@ def page(project, meta, title, body, current="", reader=False):
 <span>{esc(meta['title'])}<small>ÉDITION NUMÉRIQUE · CEREdI</small></span></a>
 <nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
 <button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav></header>
-{toolbar}<main id="main">{body}</main>
+{toolbar}<main id="main" class="{page_class}">{body}</main>
 <footer><span>{esc(meta.get('institution', ''))} · {esc(meta.get('laboratory', ''))}</span>
 <span>{esc(meta.get('status', 'Édition en cours'))} · {esc(meta.get('version', ''))}</span>
 <p>{esc(meta.get('license') or 'Licence des contenus non renseignée.')} · Réalisé avec Studio Aldines</p></footer>
