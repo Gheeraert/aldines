@@ -76,7 +76,7 @@ def page(project, meta, title, body, current="", reader=False):
 <body class="{classes}" data-mode="{reading['default_mode']}" data-root="{root}" data-alignment="{a['text_align']}">
 <a class="skip" href="#main">Aller au contenu</a>
 <header class="site-header{' reading-header' if reader else ''}"><a class="brand" href="{root}"><span class="printer-mark" aria-hidden="true">A</span>
-<span>{esc(meta['title'])}<small>ÉDITION NUMÉRIQUE · CEREdI</small></span></a>
+<span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
 <div class="header-controls"><nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
 <button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav>{toolbar}</div></header>
 {panel}<main id="main" class="{page_class}">{body}</main>

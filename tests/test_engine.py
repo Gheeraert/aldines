@@ -9,13 +9,23 @@ from lxml import html
 import pytest
 
 from aldines.augustinus import read_corpus
-from aldines.build import build, publication_metadata
+from aldines.build import build, publication_metadata, page
 from aldines.config import load_project, ProjectError
 from conftest import tei
 
 
 def source_hashes(project):
     return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in project.directory.glob("*.xml")}
+
+
+@pytest.mark.parametrize('subtitle', ['Édition bilingue <latin & français>', ''])
+def test_header_uses_project_subtitle_without_added_laboratory(project, subtitle):
+    project.data['corpus']['subtitle'] = subtitle
+    project.data['corpus']['laboratory'] = ''
+    meta = publication_metadata(project, read_corpus(project))
+    doc = html.fromstring(page(project, meta, 'Accueil', ''))
+    assert doc.xpath('string(//header//small)') == subtitle
+    assert 'CEREdI' not in doc.xpath('string(//header)')
 
 
 def test_complete_reading_controls_on_every_page_and_editor_alignment(project):
