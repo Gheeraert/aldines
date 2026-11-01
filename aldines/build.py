@@ -157,7 +157,8 @@ def reader_page(unit, units, index, global_anchors):
         return f'<a{match.group(1)} href="{link(unit.route, route)}#{quote(target, safe=".")}"'
     # Seuls les liens créés par l’interpréteur portent data-tei-ref.
     rendered = re.sub(r'<a([^>]*?) href="[^"]*" data-tei-ref="([^"]+)"', resolve_ref, rendered)
-    return f'''<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="{link(unit.route)}">Accueil</a> / <a href="{link(unit.route, 'contents/')}">Tome {unit.tome} · Livre {unit.book}</a> / {esc(unit.label)}</nav>
+    return f'''<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="{link(unit.route)}">Accueil</a> / <a href="{link(unit.route, 'contents/')}">Tome {unit.tome} · Livre {unit.book}</a> / {esc(unit.label)}
+<a class="tei-download" href="{quote(unit.file.name, safe='')}" download="{esc(unit.file.name)}" type="application/tei+xml">Télécharger le TEI</a></nav>
 <p class="eyebrow">AUGUSTINUS · TOME {unit.tome} · LIVRE {unit.book}</p><h1>{esc(unit.label)}</h1>
 <nav class="unit-nav" aria-label="Unités">{nav}</nav>
 <div class="language-headings"><span>Texte latin</span><span>Traduction française</span></div>
@@ -234,6 +235,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
         for i, u in enumerate(units):
             progress(f"{i + 1}/{len(units)} · {u.label} · Livre {u.book}")
             write(u.route, page(project, meta, u.label, reader_page(u, units, i, anchors), u.route, reader=True))
+            # Publier le fichier original, sans sérialisation ni modification.
+            shutil.copyfile(u.file, stage / u.route / u.file.name)
         search_body = '''<p class="eyebrow">LATIN & FRANÇAIS</p><h1>Rechercher dans l’édition</h1>
 <form id="search-form" role="search"><label for="query">Un mot ou une expression</label>
 <div class="search-box"><input id="query" type="search" required minlength="2" placeholder="Pélage, gratia…"><select id="search-language" aria-label="Langue"><option value="all">Les deux langues</option><option value="la">Latin</option><option value="fr">Français</option></select><button type="submit">Rechercher</button></div></form>

@@ -159,13 +159,20 @@ def test_static_build_navigation_subdirectory_and_no_source_writes(project):
     assert page.xpath('//a[@rel="prev"]/@href') == ["../s02/", "../s02/"]
     assert not page.xpath('//a[@rel="next"]')
     assert before == source_hashes(project)
-    assert not list(result.output.rglob("*.xml"))
+    assert len(list(result.output.rglob("*.xml"))) == 2
+    for route, filename in [("t1/l1/s01", "a.xml"), ("t1/l1/s02", "b.xml")]:
+        copied = result.output / route / filename
+        assert copied.read_bytes() == (project.directory / filename).read_bytes()
+        unit_page = html.parse(str(result.output / route / "index.html"))
+        assert unit_page.xpath('//a[@class="tei-download"]/@href') == [filename]
+        assert unit_page.xpath('//a[@class="tei-download"]/@download') == [filename]
     assert not list(result.output.rglob("a-verifier.md"))
     assert (result.output / ".nojekyll").exists()
     # Une nouvelle sélection élimine les anciennes pages, sans toucher aux sources.
     project.data["sources"]["selection"] = ["t1.l01.s01"]
     assert build(project).count == 1
     assert not (result.output / "t1/l1/s02").exists()
+    assert len(list(result.output.rglob("*.xml"))) == 1
 
 
 def test_cross_unit_refs_and_unpublished_refs(project):
