@@ -31,7 +31,8 @@ def test_project_roundtrip_and_metadata_priority(project):
 @pytest.mark.parametrize("group,key,value", [("appearance", "font_size", "grand"),
     ("appearance", "font_size", True), ("reading", "show_notes", "false"),
     ("reading", "default_mode", "invalid"), ("publication", "base_path", "/../"),
-    ("corpus", "languages", "la"), ("sources", "selection", "tout")])
+    ("corpus", "languages", "la"), ("sources", "selection", "tout"),
+    ("appearance", "text_align", "invalid")])
 def test_clear_json_errors(project, group, key, value):
     data = deepcopy(project.data)
     data[group][key] = value

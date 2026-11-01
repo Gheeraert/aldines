@@ -216,6 +216,10 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         theme.addItem("Clair", "light")
         theme.addItem("Sombre", "dark")
         form.addRow("Thème", self.field("appearance", "theme", theme))
+        alignment = QComboBox()
+        alignment.addItem("Aligné à gauche", "left")
+        alignment.addItem("Justifié", "justify")
+        form.addRow("Alignement du texte et des présentations", self.field("appearance", "text_align", alignment))
         form.addRow("Police de lecture", self.field("appearance", "font", QLineEdit()))
         for key, label, low, high, step in [("font_size", "Taille du texte (px)", 12, 36, 1),
                  ("line_height", "Interlignage", 1.2, 2.5, .05), ("content_width", "Largeur (px)", 600, 1800, 50),

@@ -46,7 +46,7 @@ L’exemple complet est `aldines.json` à la racine. Tous les chemins relatifs s
 - `corpus` : identifiant, titre, sous-titre, auteur, responsable, contributions, institution, laboratoire, présentation, référence imprimée, langues, avancement, date, version, licence, citation, identifiants pérennes. Contributions, langues et identifiants sont de simples listes de textes.
 - `sources` : dossier autorisé, maître, sélection. `selection: null` signifie toutes les unités disponibles ; `[]` signifie aucune ; sinon liste d’identifiants, par exemple `["t1.l01.s01", "t1.l02.c01"]`. L’ordre de cette liste ne réordonne jamais le maître. Une sélection inconnue provoque une erreur claire au lieu de publier autre chose.
 - `reading` : mode `bilingual`, `latin`, `french` et six options d’affichage booléennes. Les incertitudes restent dans le texte quand leur soulignement est désactivé ; les lacunes ne disparaissent pas.
-- `appearance` : thème `light`/`dark`, nom de police, corps 12–36 px, interlignage 1,2–2,5, largeur 600–1 800 px, proportion latine 30–70 %.
+- `appearance` : thème `light`/`dark`, nom de police, corps 12–36 px, interlignage 1,2–2,5, largeur 600–1 800 px, proportion latine 30–70 %, `text_align` (`left` par défaut ou `justify`) pour le texte et les présentations. Les anciens JSON reçoivent automatiquement la valeur `left` au chargement.
 - `publication` : sortie dédiée et `base_path` (`/` ou `/sous-dossier/`). Le montage prévu est enregistré dans le rapport ; les liens sont relatifs, donc valables dans les deux cas sans réécriture.
 
 Les blocs omis reçoivent des valeurs par défaut. Les champs supplémentaires sont conservés à la sauvegarde ; il n’existe ni moteur de migrations ni schéma externe.

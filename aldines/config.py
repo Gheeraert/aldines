@@ -24,7 +24,8 @@ DEFAULTS = {
                 "show_page_numbers": True, "show_column_markers": True,
                 "show_uncertainties": True, "show_sentence_ids": False},
     "appearance": {"theme": "light", "font": "EB Garamond", "font_size": 20,
-                   "line_height": 1.65, "content_width": 1200, "column_ratio": 50},
+                   "line_height": 1.65, "content_width": 1200, "column_ratio": 50,
+                   "text_align": "left"},
     "publication": {"output": "publication", "base_path": "/"},
 }
 
@@ -84,6 +85,8 @@ def validate(data):
     if data["reading"].get("default_mode") not in ("bilingual", "latin", "french"):
         raise ProjectError("reading.default_mode : bilingual, latin ou french attendu.")
     a = data["appearance"]
+    if a.get("text_align") not in ("left", "justify"):
+        raise ProjectError("appearance.text_align : left ou justify attendu.")
     if a.get("theme") not in ("light", "dark"):
         raise ProjectError("appearance.theme : light ou dark attendu.")
     if not isinstance(a.get("font"), str) or not re.fullmatch(r"[\w .-]{1,80}", a["font"]):

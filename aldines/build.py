@@ -59,26 +59,31 @@ def page(project, meta, title, body, current="", reader=False):
            f"--leading:{a['line_height']};--measure:{a['content_width']}px;--ratio:{a['column_ratio']}%;}}")
     options = "".join(f'<option value="{value}"{" selected" if reading["default_mode"] == value else ""}>{label}</option>'
                       for value, label in [("bilingual", "Latin · Français"), ("latin", "Latin"), ("french", "Français")])
-    toolbar = f'''<div class="reader-tools"><label>Lecture <select id="reading-mode">{options}</select></label>
-<button id="reader-options" aria-expanded="false" aria-controls="display-options">Affichage</button></div>
-<fieldset id="display-options" hidden><legend>Repères et annotations</legend>{''.join(
+    toolbar = '<div class="reader-tools">'
+    if reader:
+        toolbar += f'<label>Lecture <select id="reading-mode">{options}</select></label>'
+    toolbar += '<button id="reader-options" aria-expanded="false" aria-controls="display-options">Options d’affichage</button></div>'
+    alignment_options = ''.join(f'<option value="{value}"{" selected" if a["text_align"] == value else ""}>{label}</option>'
+                                for value, label in [("left", "Aligné à gauche"), ("justify", "Justifié")])
+    panel = f'''<fieldset id="display-options" hidden><legend>Options d’affichage</legend>
+<label>Alignement du texte <select id="text-alignment">{alignment_options}</select></label>{''.join(
         f'<label><input type="checkbox" data-option="{key[5:].replace("_", "-")}" {"checked" if reading[key] else ""}> {label}</label>'
         for key, label in [("show_notes", "Notes"), ("show_marginalia", "Manchettes"),
                            ("show_page_numbers", "Pages"), ("show_column_markers", "Colonnes et sections imprimées"),
-                           ("show_uncertainties", "Signalement des incertitudes"), ("show_sentence_ids", "Identifiants des phrases")])}</fieldset>''' if reader else ""
+                           ("show_uncertainties", "Signalement des incertitudes"), ("show_sentence_ids", "Identifiants des phrases")]) if reader else ''}</fieldset>'''
     return f'''<!doctype html>
 <html lang="fr" data-theme="{a['theme']}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Studio Aldines 0.1">
 <title>{esc(title)} · {esc(meta['title'])}</title>
 <link rel="stylesheet" href="{root}assets/site.css"><style>{css}</style>
 <script src="{root}assets/site.js" defer></script></head>
-<body class="{classes}" data-mode="{reading['default_mode']}" data-root="{root}">
+<body class="{classes}" data-mode="{reading['default_mode']}" data-root="{root}" data-alignment="{a['text_align']}">
 <a class="skip" href="#main">Aller au contenu</a>
-<header class="site-header"><a class="brand" href="{root}"><span class="printer-mark" aria-hidden="true">A</span>
+<header class="site-header{' reading-header' if reader else ''}"><a class="brand" href="{root}"><span class="printer-mark" aria-hidden="true">A</span>
 <span>{esc(meta['title'])}<small>ÉDITION NUMÉRIQUE · CEREdI</small></span></a>
-<nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
-<button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav></header>
-{toolbar}<main id="main" class="{page_class}">{body}</main>
+<div class="header-controls"><nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
+<button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav>{toolbar}</div></header>
+{panel}<main id="main" class="{page_class}">{body}</main>
 <footer><span>{esc(meta.get('institution', ''))} · {esc(meta.get('laboratory', ''))}</span>
 <span>{esc(meta.get('status', 'Édition en cours'))} · {esc(meta.get('version', ''))}</span>
 <p>{esc(meta.get('license') or 'Licence des contenus non renseignée.')} · Réalisé avec Studio Aldines</p></footer>
@@ -105,7 +110,13 @@ def home(meta, units):
 
 def contents(units):
     result = ['<p class="eyebrow">EXPLORER LE CORPUS</p><h1>Table des matières</h1>',
-              '<p>Seules les unités disponibles et sélectionnées sont proposées à la lecture.</p>']
+              '<p>Choisissez un tome, un livre, puis une section ou un chapitre disponible.</p>',
+              '''<form id="corpus-navigator" hidden><div class="corpus-selectors">
+<label>Tome<select id="nav-tome"></select></label>
+<label>Livre<select id="nav-book"></select></label>
+<label>Section / chapitre<select id="nav-unit"></select></label></div>
+<p id="nav-summary" role="status"></p><a id="nav-open" class="primary">Ouvrir le texte →</a></form>
+<details class="contents-fallback" open><summary>Liste complète des unités disponibles</summary>''']
     last_tome = last_book = None
     opened = False
     for u in units:
@@ -116,10 +127,11 @@ def contents(units):
                 result.append(f"<h2>Tome {u.tome}</h2>")
             result.append(f'<h3>Livre {u.book}</h3><ol class="contents-list">')
             last_tome, last_book, opened = u.tome, u.book, True
-        result.append(f'<li><a href="{link("contents/", u.route)}">{esc(u.label)}</a>'
+        result.append(f'<li data-tome="{u.tome}" data-book="{u.book}" data-sentences="{u.sentences}" data-translated="{u.translated}"><a href="{link("contents/", u.route)}">{esc(u.label)}</a>'
                       f'<span>{u.sentences} phrases · {u.translated} traduites</span></li>')
     if opened:
         result.append("</ol>")
+    result.append("</details>")
     return "".join(result)
 
 

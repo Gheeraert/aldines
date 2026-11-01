@@ -3,12 +3,28 @@
   'use strict';
   const one = s => document.querySelector(s);
   const body = document.body;
+  const header = one('.reading-header');
+  if (header) {
+    const measureHeader = () => document.documentElement.style.setProperty('--header-height', `${Math.ceil(header.getBoundingClientRect().height)}px`);
+    measureHeader();
+    new ResizeObserver(measureHeader).observe(header);
+  }
   const storage = {
     get(key) { try { return localStorage.getItem('aldines-' + key); } catch { return null; } },
     set(key, value) { try { localStorage.setItem('aldines-' + key, value); } catch {} }
   };
   const theme = storage.get('theme');
   if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  function alignText(value) {
+    body.dataset.alignment = value;
+    if (one('#text-alignment')) one('#text-alignment').value = value;
+  }
+  const alignment = storage.get('alignment');
+  if (alignment === 'left' || alignment === 'justify') alignText(alignment);
+  one('#text-alignment')?.addEventListener('change', e => {
+    alignText(e.target.value);
+    storage.set('alignment', e.target.value);
+  });
   one('#theme-toggle')?.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -16,7 +32,7 @@
   });
   function changeMode(mode) {
     const rows = [...document.querySelectorAll('.aligned-row.sentence')];
-    const toolbarBottom = one('.reader-tools')?.getBoundingClientRect().bottom || 0;
+    const toolbarBottom = one('.site-header')?.getBoundingClientRect().bottom || 0;
     const visible = rows.find(r => r.getBoundingClientRect().bottom > toolbarBottom);
     const offset = visible?.getBoundingClientRect().top;
     body.dataset.mode = mode;
@@ -65,6 +81,51 @@
   }
   if (location.hash) revealHash();
   window.addEventListener('hashchange', revealHash);
+  const navigator = one('#corpus-navigator');
+  if (navigator) {
+    const entries = [...document.querySelectorAll('.contents-list li')].map(li => ({
+      tome: li.dataset.tome, book: li.dataset.book,
+      sentences: Number(li.dataset.sentences), translated: Number(li.dataset.translated),
+      label: li.querySelector('a').textContent, href: li.querySelector('a').getAttribute('href')
+    }));
+    const tome = one('#nav-tome'), book = one('#nav-book'), unit = one('#nav-unit');
+    function fill(select, options, preferred) {
+      select.replaceChildren(...options.map(([value, label]) => new Option(label, value)));
+      if (options.some(([value]) => value === preferred)) select.value = preferred;
+    }
+    function updateUnit() {
+      const inBook = entries.filter(e => e.tome === tome.value && e.book === book.value);
+      const selected = inBook.find(e => e.href === unit.value);
+      if (!selected) return;
+      const total = key => inBook.reduce((sum, e) => sum + e[key], 0);
+      one('#nav-summary').textContent = `Livre ${book.value} : ${total('sentences')} phrases, ${total('translated')} traduites. Sélection : ${selected.sentences} phrases, ${selected.translated} traduites.`;
+      one('#nav-open').href = selected.href;
+      storage.set('navigation', JSON.stringify({tome: tome.value, book: book.value, unit: unit.value}));
+    }
+    function updateBook(preferredUnit) {
+      fill(unit, entries.filter(e => e.tome === tome.value && e.book === book.value)
+        .map(e => [e.href, `${e.label} — ${e.sentences} phrases · ${e.translated} traduites`]), preferredUnit);
+      updateUnit();
+    }
+    function updateTome(preferredBook, preferredUnit) {
+      const inTome = entries.filter(e => e.tome === tome.value);
+      fill(book, [...new Set(inTome.map(e => e.book))].map(b => [b, `Livre ${b} — ${inTome.filter(e => e.book === b).length} unités`]), preferredBook);
+      updateBook(preferredUnit);
+    }
+    let previous = {};
+    try { previous = JSON.parse(storage.get('navigation')) || {}; } catch {}
+    fill(tome, [...new Set(entries.map(e => e.tome))].map(t => [t, `Tome ${t} — ${entries.filter(e => e.tome === t).length} unités`]), previous.tome);
+    updateTome(previous.book, previous.unit);
+    tome.addEventListener('change', () => updateTome());
+    book.addEventListener('change', () => updateBook());
+    unit.addEventListener('change', updateUnit);
+    navigator.addEventListener('submit', event => {
+      event.preventDefault();
+      if (unit.value) location.href = unit.value;
+    });
+    navigator.hidden = false;
+    one('.contents-fallback').open = false;
+  }
   const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/æ/g, 'ae').replace(/œ/g, 'oe');
   one('#search-form')?.addEventListener('submit', event => {
     event.preventDefault();

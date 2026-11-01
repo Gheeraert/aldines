@@ -5,6 +5,7 @@ Les captures scientifiques restent dans .local, exclu de Git.
 """
 from pathlib import Path
 import argparse
+import json
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -15,10 +16,13 @@ def main():
     from playwright.sync_api import sync_playwright
     parser = argparse.ArgumentParser()
     parser.add_argument("--channel", default=None, help="Par exemple chrome si Chromium Playwright n’est pas installé")
+    parser.add_argument("--directory", default="publication", help="Dossier du site à vérifier")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    site = root / "publication"
-    shots = root / ".local" / "screenshots"
+    site = (root / args.directory).resolve()
+    total_units = json.loads((site / "build-report.json").read_text(encoding="utf-8"))["published_units"]
+    site_prefix = site.relative_to(root).as_posix()
+    shots = root / ".local" / "css-next" / "smoke"
     shots.mkdir(parents=True, exist_ok=True)
     server, url = start_preview(site)
     errors = []
@@ -30,8 +34,11 @@ def main():
             page.goto(url)
             page.screenshot(path=str(shots / "home-desktop.png"), full_page=True)
             page.get_by_role("link", name="Parcourir l’édition").click()
-            assert page.locator(".contents-list li").count() == 97
-            page.get_by_role("link", name="Section 1", exact=True).click()
+            assert page.locator(".contents-list li").count() == total_units
+            page.locator('#nav-tome').select_option('1')
+            page.locator('#nav-book').select_option('1')
+            page.locator('#nav-unit').select_option('../t1/l1/s01/')
+            page.locator('#nav-open').click()
             assert page.locator(".aligned-row.sentence").count() == 74
             page.locator(".note-call").first.click()
             assert page.locator(".note-content").first.is_visible()
@@ -40,7 +47,7 @@ def main():
             row = page.locator('[data-anchor="t1.l01.s01.la.s14"]')
             page.screenshot(path=str(shots / "greek-desktop.png"))
             anchor = page.evaluate('''() => {
-                const bottom = document.querySelector('.reader-tools').getBoundingClientRect().bottom;
+                const bottom = document.querySelector('.site-header').getBoundingClientRect().bottom;
                 return [...document.querySelectorAll('.aligned-row.sentence')].find(r => r.getBoundingClientRect().bottom > bottom).dataset.anchor;
             }''')
             visible = page.locator(f'[data-anchor="{anchor}"]')
@@ -72,12 +79,12 @@ def main():
             # Sous-répertoire : le serveur sert ici le projet, donc /publication/.
             parent_server, parent_url = start_preview(root)
             try:
-                response = page.goto(parent_url + "publication/t1/l2/c01/")
+                response = page.goto(parent_url + site_prefix + "/t1/l2/c01/")
                 assert response.status == 200
                 assert page.locator(".aligned-row.sentence").count() == 94
                 page.get_by_role("link", name="Sommaire", exact=True).click()
-                assert "/publication/contents/" in page.url
-                assert page.locator(".contents-list li").count() == 97
+                assert f"/{site_prefix}/contents/" in page.url
+                assert page.locator(".contents-list li").count() == total_units
             finally:
                 parent_server.shutdown()
                 parent_server.server_close()

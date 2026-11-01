@@ -43,12 +43,14 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path):
     assert not errors
     assert len(window.leaves()) == 2
     window.fields[("appearance", "font_size")].setValue(22)
+    window.fields[("appearance", "text_align")].setCurrentIndex(1)
     window.leaves()[0].setCheckState(0, Qt.Unchecked)
     assert window.dirty
     assert window.save_project()
     saved = load_project(project.path)
     assert saved.data["sources"]["selection"] == ["t1.l01.s01"]
     assert saved.data["appearance"]["font_size"] == 22
+    assert saved.data["appearance"]["text_align"] == "justify"
     opened = []
     window.browse_site = lambda output, route="": opened.append((output, route))
     window.preview_unit.setCurrentIndex(1)

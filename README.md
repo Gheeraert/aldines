@@ -25,11 +25,13 @@ Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Dri
 
 1. **Projet** : ouvrir ce JSON, ou créer un projet depuis un dossier TEI en désignant son fichier maître. Enregistrer le JSON hors du dossier TEI. Les métadonnées laissées vides sont complétées par les en-têtes ; leurs valeurs apparaissent en indication dans les champs.
 2. **Corpus** : recharger et contrôler ; cocher les unités à publier. L’ordre suit exclusivement les inclusions du maître. Une inclusion absente produit un avertissement ; les livres encore absents du maître ne sont pas des erreurs.
-3. **Présentation** : choisir langues, typographie, thème et repères ; enregistrer les réglages.
+3. **Présentation** : choisir langues, typographie, thème, alignement à gauche ou justifié et repères ; enregistrer les réglages. L’alignement concerne aussi les textes de présentation.
 4. **Prévisualisation** : sélectionner une unité et générer l’aperçu. Il s’ouvre dans le navigateur via un petit serveur limité à `127.0.0.1` ; il reste actif tant que l’application est ouverte.
 5. **Publication** : choisir un dossier dédié, générer toutes les unités sélectionnées et consulter le journal. « Ouvrir le site » lance l’aperçu local, sans déploiement.
 
 Un astérisque dans le titre indique les réglages non enregistrés. Une génération utilise les réglages actuellement affichés, même avant sauvegarde ; **enregistrer** le projet pour pouvoir reproduire ce rendu en ligne de commande. Le dossier de sortie doit être vide ou avoir déjà été généré par Aldines : son contenu sera remplacé lors des générations suivantes.
+
+Dans le site, l’en-tête réunit navigation et commandes de lecture. « Options d’affichage » permet de choisir l’alignement ; cette préférence du lecteur est conservée dans son navigateur et prend le pas sur le réglage initial du projet. Le sommaire propose trois sélections liées : tome, livre et section/chapitre, avec les nombres de phrases et de traductions, puis « Ouvrir le texte ». La dernière sélection est mémorisée. Une liste complète dépliable reste disponible, y compris sans JavaScript.
 
 ## Ligne de commande
 

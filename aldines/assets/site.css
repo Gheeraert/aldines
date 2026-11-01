@@ -29,7 +29,7 @@
   box-sizing:border-box
 }
 html {
-  scroll-padding-top:1.5rem
+  scroll-padding-top:calc(var(--header-height,0px) + 8px)
 }
 body {
   margin:0;
@@ -123,6 +123,29 @@ button:hover {
 }
 .site-header nav button {
   min-height:40px
+}
+.reading-header {
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:var(--bg)
+}
+.header-controls {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-items:center;
+  gap:12px 20px
+}
+body[data-alignment=justify] {
+  --text-alignment:justify
+}
+.reader>.sentence>.latin,.reader>.sentence>.french,
+.description,.project-details p,.project-details dd,.source-metadata p {
+  text-align:var(--text-alignment,left)
+}
+.note-content {
+  text-align:left
 }
 main {
   max-width:var(--measure);
@@ -250,28 +273,61 @@ dd {
 .contents-page>p:not(.eyebrow) {
   margin:8px 0 16px
 }
-.contents-page>h2 {
+.contents-fallback>h2 {
   font-size:28px;
   margin:16px 0 8px
 }
-.contents-page>h3 {
+.contents-fallback>h3 {
   font-size:22px;
   margin:12px 0 6px
 }
 .reader-tools {
-  position:sticky;
-  top:0;
-  z-index:5;
-  background:var(--bg);
-  border-bottom:1px solid var(--line);
   display:flex;
   justify-content:flex-end;
   align-items:center;
   gap:12px;
-  max-width:var(--measure);
-  margin:8px auto 0;
-  padding:6px var(--page-gutter);
+  margin:0;
   font-size:13px
+}
+#corpus-navigator {
+  padding:16px 0;
+  border-block:1px solid var(--line);
+  margin:20px 0
+}
+.corpus-selectors {
+  display:grid;
+  grid-template-columns:1fr 1fr 2fr;
+  gap:16px
+}
+.corpus-selectors label {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+  font-size:13px
+}
+.corpus-selectors select {
+  width:100%;
+  min-width:0;
+  min-height:44px
+}
+#nav-summary {
+  color:var(--muted);
+  font-size:13px;
+  margin:12px 0 0
+}
+.contents-fallback>summary {
+  cursor:pointer;
+  padding:12px 0
+}
+@media(max-width:1100px) {
+  .site-header {
+    flex-wrap:wrap;
+    gap:8px
+  }
+  .header-controls {
+    justify-content:flex-start
+  }
 }
 .reader-tools select,.reader-tools button {
   min-height:36px
@@ -591,9 +647,14 @@ footer p {
     min-height:44px
   }
   .reader-tools {
-    margin-top:4px;
     justify-content:flex-start;
     flex-wrap:wrap
+  }
+  .header-controls {
+    gap:6px 12px
+  }
+  .corpus-selectors {
+    grid-template-columns:1fr
   }
   .reader-tools select,.reader-tools button {
     min-height:44px
