@@ -15,7 +15,7 @@ def main(argv=None):
     for command, help_text in [("build", "Générer le site statique"), ("check", "Contrôler le corpus en lecture seule"),
                                ("gui", "Ouvrir l’atelier Qt")]:
         p = subs.add_parser(command, help=help_text)
-        p.add_argument("project", nargs="?" if command == "gui" else None, default="aldines.json")
+        p.add_argument("project", nargs="?" if command == "gui" else None)
         if command == "build":
             p.add_argument("--unit", help="Identifiant d’une unité pour un aperçu isolé")
             p.add_argument("--output", help="Dossier de sortie différent de celui du projet")
@@ -29,7 +29,7 @@ def main(argv=None):
                 from .gui import run
             except ImportError as exc:
                 raise ProjectError('Installer l’interface : python -m pip install -e ".[gui]"') from exc
-            return run(args.project if Path(args.project).is_file() else None)
+            return run(args.project if args.project and Path(args.project).is_file() else None)
         if args.command == "serve":
             directory = Path(args.directory).resolve()
             if not (directory / "index.html").is_file():

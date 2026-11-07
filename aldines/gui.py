@@ -90,7 +90,12 @@ QLabel#intro{color:#69756a;margin-bottom:20px}
 QPushButton{background:#fdfcf7;border:1px solid #cbd1c4;border-radius:4px;padding:9px 15px}
 QPushButton:hover{border-color:#6b3029;background:#efece1}
 QPushButton:disabled{color:#92988e}
-QPushButton#primary{background:#304f3c;color:#fffdf4;border:0;padding:12px 20px}
+QPushButton#primary{background:#304f3c;color:#fffdf4;border:1px solid #304f3c;padding:11px 19px}
+QPushButton#primary:hover{background:#3d6049}
+QPushButton#primary:focus{border-color:#b2cbb8}
+QPushButton#primary:pressed{background:#c9d9cc;color:#20372a;border-color:#304f3c}
+QPushButton#primary:disabled{background:#e2e6dd;color:#657267;border-color:#cbd1c4}
+QLabel#save-feedback{color:#304f3c;font-weight:bold}
 QLineEdit,QPlainTextEdit,QComboBox,QSpinBox,QDoubleSpinBox{background:#fffef9;border:1px solid #cbd1c4;border-radius:3px;padding:6px;selection-background-color:#d8e2d2}
 QTreeWidget{background:#fffef9;alternate-background-color:#efefe5;border:1px solid #d4d9cd}
 QHeaderView::section{background:#e8ecdf;border:0;padding:9px;color:#3e5142}
@@ -140,6 +145,9 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
     def changed(self, *_):
         if not self.loading and self.project:
             self.dirty = True
+            if self.save_feedback.text():
+                self.save_feedback.clear()
+                self.statusBar().clearMessage()
             self.setWindowTitle(f"Studio Aldines — {self.project.path.name} *")
 
     def make_project(self):
@@ -148,7 +156,12 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         actions.addWidget(self.button("Ouvrir un projet…", self.choose_project))
         actions.addWidget(self.button("Créer depuis un dossier TEI…", self.create_project))
         self.save_button = self.button("Enregistrer", self.save_project, True)
+        self.save_button.setEnabled(False)
         actions.addWidget(self.save_button)
+        self.save_feedback = QLabel()
+        self.save_feedback.setObjectName("save-feedback")
+        self.save_feedback.setWordWrap(True)
+        actions.addWidget(self.save_feedback, 1)
         v.addLayout(actions)
         self.recent = QComboBox()
         self.refresh_recent()
@@ -332,6 +345,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.dirty = False
         self.setWindowTitle(f"Studio Aldines — {project.path.name}")
         self.project_label.setText(str(project.path))
+        self.save_feedback.clear()
+        self.save_button.setEnabled(True)
         self.remember()
         self.scan()
 
@@ -361,15 +376,19 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         return Project(self.project.path, data)
 
     def save_project(self):
+        self.save_feedback.clear()
         try:
-            self.project = self.collect()
-            self.project.save()
+            project = self.collect()
+            project.save()
         except (ProjectError, OSError) as exc:
             self.error(exc)
             return False
+        self.project = project
         self.dirty = False
         self.setWindowTitle(f"Studio Aldines — {self.project.path.name}")
-        self.statusBar().showMessage("Projet enregistré.")
+        message = "Projet enregistré."
+        self.save_feedback.setText(message)
+        self.statusBar().showMessage(message)
         return True
 
     def create_project(self):

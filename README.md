@@ -12,12 +12,12 @@ Depuis PowerShell, dans le dépôt :
 cd C:\aldines
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[gui,test]"
-.\.venv\Scripts\python.exe -m aldines gui aldines.json
+.\.venv\Scripts\python.exe -m aldines gui
 ```
 
 Python 3.11 ou supérieur. Dépendances : `lxml` ; `PySide6` pour l’interface ; `pytest` pour les tests. Aucun navigateur intégré, framework web, base de données ni service distant. Une fois les dépendances installées, on peut aussi double-cliquer sur `Lancer-Studio-Aldines.cmd`.
 
-Sur l’ordinateur de développement, les dépendances sont déjà présentes dans Python 3.14 : `python -m aldines gui aldines.json` fonctionne directement.
+Sur l’ordinateur de développement, les dépendances sont déjà présentes dans Python 3.14. `python -m aldines gui` ouvre l’atelier sans projet, comme le lanceur Windows. Pour ouvrir un projet précis au démarrage, passez son chemin à la commande, par exemple `python -m aldines gui aldines.json`.
 
 ## Premier projet Augustinus
 
@@ -29,7 +29,7 @@ Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Dri
 4. **Prévisualisation** : sélectionner une unité et générer l’aperçu. Il s’ouvre dans le navigateur via un petit serveur limité à `127.0.0.1` ; il reste actif tant que l’application est ouverte.
 5. **Publication** : choisir un dossier dédié, générer toutes les unités sélectionnées et consulter le journal. « Ouvrir le site » lance l’aperçu local, sans déploiement.
 
-Un astérisque dans le titre indique les réglages non enregistrés. Une génération utilise les réglages actuellement affichés, même avant sauvegarde ; **enregistrer** le projet pour pouvoir reproduire ce rendu en ligne de commande. Le dossier de sortie doit être vide ou avoir déjà été généré par Aldines : son contenu sera remplacé lors des générations suivantes.
+Un astérisque dans le titre indique les réglages non enregistrés. Le message « Projet enregistré. » apparaît à côté du bouton après la sauvegarde. Une génération utilise les réglages actuellement affichés, même avant sauvegarde. Enregistrez le projet pour pouvoir reproduire ce rendu en ligne de commande. Choisissez un dossier de sortie vide ou déjà généré par Aldines, qui remplacera son contenu lors des générations suivantes.
 
 Dans le site, toutes les pages présentent le bandeau complet : Sommaire, Rechercher, Clair / sombre, Lecture et son menu latin/français/bilingue, Options d’affichage. Ce dernier contient les six réglages de notes, manchettes, pages, colonnes, incertitudes et identifiants. Les préférences de lecture sont conservées dans le navigateur. L’alignement à gauche ou justifié est exclusivement décidé dans Studio Aldines, puis appliqué par la génération. Le sommaire propose trois sélections liées : tome, livre et section/chapitre, avec les nombres de phrases et de traductions, puis « Ouvrir le texte ». La dernière sélection est mémorisée. Une liste complète dépliable reste disponible, y compris sans JavaScript.
 
