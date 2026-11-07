@@ -33,7 +33,7 @@ def main():
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.goto(url)
             page.screenshot(path=str(shots / "home-desktop.png"), full_page=True)
-            page.get_by_role("link", name="Parcourir l’édition").click()
+            page.locator(".read-button").click()
             assert page.locator(".contents-list li").count() == total_units
             page.locator('#nav-tome').select_option('1')
             page.locator('#nav-book').select_option('1')

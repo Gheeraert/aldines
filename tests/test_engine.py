@@ -28,10 +28,11 @@ def test_header_uses_project_subtitle_without_added_laboratory(project, subtitle
     assert 'CEREdI' not in doc.xpath('string(//header)')
 
 
-def test_complete_reading_controls_on_every_page_and_editor_alignment(project):
+def test_complete_reading_controls_and_editor_alignment_on_edition_pages(project):
     project.data['appearance']['text_align'] = 'justify'
     result = build(project)
-    for path in result.output.rglob('index.html'):
+    editorial_pages = [result.output / route / 'index.html' for route in ('', 'ressources')]
+    for path in set(result.output.rglob('index.html')) - set(editorial_pages):
         doc = html.parse(str(path))
         assert doc.xpath('//label[select[@id="reading-mode"]]')
         assert doc.xpath('//select[@id="reading-mode"]/option/@value') == ['bilingual', 'latin', 'french']
@@ -39,6 +40,12 @@ def test_complete_reading_controls_on_every_page_and_editor_alignment(project):
         assert doc.xpath('//button[@id="reader-options"]/text()') == ['Options d’affichage']
         assert not doc.xpath('//select[@id="text-alignment"]')
         assert doc.xpath('//body/@data-alignment') == ['justify']
+    for path in editorial_pages:
+        doc = html.parse(str(path))
+        assert not doc.xpath('//*[@id="reading-mode"] | //script')
+        assert doc.xpath('//link[contains(@href, "editorial.css")]')
+    home = html.parse(str(editorial_pages[0]))
+    assert home.xpath('//a[@class="read-button"]/@href') == ['contents/']
 
 
 def test_project_roundtrip_and_metadata_priority(project):
@@ -147,7 +154,7 @@ def assert_site_links(output):
     for f, doc in docs.items():
         ids = doc.xpath("//@id")
         assert not [k for k, v in Counter(ids).items() if v > 1], f
-        for url in doc.xpath("//a/@href | //script/@src | //link/@href"):
+        for url in doc.xpath("//a/@href | //script/@src | //link/@href | //img/@src"):
             parts = urlsplit(url)
             if parts.scheme or parts.netloc:
                 continue

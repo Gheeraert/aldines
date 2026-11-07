@@ -12,6 +12,7 @@ from urllib.parse import quote
 
 from .augustinus import read_corpus
 from .config import ProjectError, validate
+from .editorial import EDITORIAL_ASSETS, home, resources
 
 MARKER = ".aldines-generated"
 
@@ -84,24 +85,6 @@ def page(project, meta, title, body, current="", reader=False):
 <span>{esc(meta.get('status', 'Édition en cours'))} · {esc(meta.get('version', ''))}</span>
 <p>{esc(meta.get('license') or 'Licence des contenus non renseignée.')} · Réalisé avec Studio Aldines</p></footer>
 </body></html>'''
-
-
-def home(meta, units):
-    fields = [("Auteur", meta.get("author")), ("Responsable scientifique", meta.get("editor")),
-              ("Édition de référence", meta.get("source_edition")),
-              ("Publication", " · ".join(filter(None, [meta.get("publication_date"), meta.get("version")]))),
-              ("Citation", meta.get("citation"))]
-    details = "".join(f"<dt>{esc(k)}</dt><dd>{esc(v)}</dd>" for k, v in fields if v)
-    contributors = "".join(f"<li>{esc(c)}</li>" for c in meta.get("contributors", []))
-    identifiers = "".join(f"<li>{esc(c)}</li>" for c in meta.get("identifiers", []))
-    return f'''<section class="hero"><p class="eyebrow">UN ATELIER D’ÉDITION SAVANTE</p>
-<h1>{esc(meta['title'])}</h1><p class="subtitle">{esc(meta.get('subtitle', ''))}</p>
-<p class="description">{esc(meta.get('description', ''))}</p>
-<a class="primary" href="contents/">Parcourir l’édition <span aria-hidden="true">→</span></a>
-<p class="edition-state">{len(units)} unités disponibles · Latin & français · {esc(meta.get('status', ''))}</p></section>
-<section class="project-details"><h2>À propos de cette édition</h2><dl>{details}</dl>
-{'<h3>Contributions</h3><ul>' + contributors + '</ul>' if contributors else ''}
-{'<h3>Identifiants pérennes</h3><ul>' + identifiers + '</ul>' if identifiers else ''}</section>'''
 
 
 def contents(units):
@@ -224,7 +207,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
             destination = stage / route / "index.html"
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(value, encoding="utf-8")
-        write("", page(project, meta, "Accueil", home(meta, units)))
+        write("", home())
+        write("ressources", resources(meta))
         write("contents", page(project, meta, "Table des matières", contents(units), "contents/"))
         anchors = {}
         for u in units:
@@ -245,7 +229,7 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
         write("search", page(project, meta, "Recherche", search_body, "search/"))
         assets = stage / "assets"
         assets.mkdir()
-        for name in ("site.css", "site.js"):
+        for name in ("site.css", "site.js", *EDITORIAL_ASSETS):
             shutil.copyfile(Path(__file__).parent / "assets" / name, assets / name)
         records = [{"unit": u.label, "book": u.book, "route": u.route, "anchor": r.anchor,
                     "la": r.latin_text, "fr": r.french_text} for u in units for r in u.rows

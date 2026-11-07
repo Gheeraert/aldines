@@ -20,7 +20,7 @@ aldines = "aldines.__main__:main"
 include = ["aldines*"]
 
 [tool.setuptools.package-data]
-aldines = ["assets/*.css", "assets/*.js"]
+aldines = ["assets/*.css", "assets/*.js", "assets/frontispice-1641.webp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
