@@ -7,7 +7,7 @@ import pytest
 pytest.importorskip("PySide6")
 from PySide6.QtCore import QEventLoop, QTimer, QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog, QPushButton
 from PySide6.QtGui import QFontDatabase, QFont
 from pathlib import Path
 
@@ -37,7 +37,7 @@ def test_gui_loads_a_project_only_when_requested(monkeypatch, tmp_path):
     assert launched == [None, str(project)]
 
 
-def test_qt_open_select_save_preview_and_publish(project, tmp_path):
+def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
     # Le plugin Qt hors écran ne charge pas toujours les polices Windows.
     # Charger celles-ci explicitement pour rendre la capture de test lisible.
@@ -51,6 +51,10 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path):
     window = Window()
     assert window.project is window.corpus is window.worker is None
     assert not window.save_button.isEnabled()
+    assert not window.credits_controls.isEnabled()
+    assert window.navigation.item(3).text() == "04   Ressources"
+    assert window.stack.widget(3) is window.resources_page
+    assert window.stack.widget(0).isAncestorOf(window.credits_file)
     window.show()
     errors = []
     window.error = errors.append
@@ -86,6 +90,19 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path):
     assert not errors
     assert (project.output / "t1/l1/s01/index.html").exists()
     assert not (project.output / "t1/l1/s02/index.html").exists()
+    files = [str(tmp_path / name) for name in ("un.md", "deux.md")]
+    monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *args: (files, ""))
+    window.add_resources()
+    window.add_resources()
+    assert window.resource_files.count() == 2
+    window.resource_files.item(0).setSelected(True)
+    window.remove_resources()
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *args: (str(tmp_path / "projet.md"), ""))
+    choose = next(button for button in window.credits_controls.findChildren(QPushButton)
+                  if button.text() == "Choisir le Markdown…")
+    QTest.mouseClick(choose, Qt.LeftButton)
+    assert window.dirty and window.save_project()
+    assert load_project(project.path).data["editorial"] == {"resources": ["deux.md"], "credits": "projet.md"}
     window.show()
     app.processEvents()
     window.grab().save(str(tmp_path / "qt-project.png"))

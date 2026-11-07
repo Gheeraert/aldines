@@ -62,7 +62,8 @@ class Window(QMainWindow):
         caption.setObjectName("side-caption")
         side.addWidget(caption)
         self.navigation = QListWidget()
-        self.navigation.addItems(["01   Projet", "02   Corpus", "03   Présentation", "04   Prévisualisation", "05   Publication"])
+        self.navigation.addItems(["01   Projet", "02   Corpus", "03   Présentation", "04   Ressources",
+                                  "05   Prévisualisation", "06   Publication"])
         self.navigation.setObjectName("navigation")
         side.addWidget(self.navigation)
         side.addWidget(QLabel("Studio Aldines  0.1\nÉdition numérique savante"))
@@ -72,6 +73,7 @@ class Window(QMainWindow):
         self.make_project()
         self.make_corpus()
         self.make_appearance()
+        self.make_resources()
         self.make_preview()
         self.make_publication()
         self.navigation.currentRowChanged.connect(self.stack.setCurrentIndex)
@@ -173,6 +175,18 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.project_label = QLabel("Aucun projet ouvert")
         self.project_label.setWordWrap(True)
         v.addWidget(self.project_label)
+        self.credits_controls = QWidget()
+        credits = QHBoxLayout(self.credits_controls)
+        credits.setContentsMargins(0, 0, 0, 0)
+        credits.addWidget(QLabel("Projet et crédits"))
+        self.credits_file = self.track(QLineEdit())
+        self.credits_file.setReadOnly(True)
+        self.credits_file.setPlaceholderText("Les informations du projet seront utilisées par défaut.")
+        credits.addWidget(self.credits_file, 1)
+        credits.addWidget(self.button("Choisir le Markdown…", self.choose_credits))
+        credits.addWidget(self.button("Retirer le fichier", self.credits_file.clear))
+        self.credits_controls.setEnabled(False)
+        v.addWidget(self.credits_controls)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         container = QWidget()
@@ -285,6 +299,49 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.log.setReadOnly(True)
         v.addWidget(self.log)
 
+    def make_resources(self):
+        v = self.space("Études et ressources",
+                       "Ajoutez les fichiers Markdown à publier, puis enregistrez les réglages dans l’onglet Projet.")
+        self.resource_files = QListWidget()
+        self.resource_files.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
+        v.addWidget(self.resource_files, 1)
+        actions = QHBoxLayout()
+        actions.addWidget(self.button("Ajouter des fichiers…", self.add_resources))
+        actions.addWidget(self.button("Retirer de la liste", self.remove_resources))
+        actions.addStretch()
+        v.addLayout(actions)
+        self.resources_page = v.parentWidget()
+        self.resources_page.setEnabled(False)
+
+    def markdown_path(self, filename):
+        path = Path(filename).resolve()
+        directory = self.project.path.parent
+        return str(path.relative_to(directory) if path.is_relative_to(directory) else path)
+
+    def add_resources(self):
+        files, _ = QFileDialog.getOpenFileNames(self, "Ajouter des ressources", str(self.project.path.parent),
+                                               "Fichiers Markdown (*.md *.markdown)")
+        known = {self.project.resolve(self.resource_files.item(i).text()) for i in range(self.resource_files.count())}
+        for filename in files:
+            path = Path(filename).resolve()
+            if path not in known:
+                self.resource_files.addItem(self.markdown_path(filename))
+                known.add(path)
+                self.changed()
+
+    def remove_resources(self):
+        selected = self.resource_files.selectedItems()
+        for item in selected:
+            self.resource_files.takeItem(self.resource_files.row(item))
+        if selected:
+            self.changed()
+
+    def choose_credits(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier Projet et crédits", str(self.project.path.parent),
+                                              "Fichiers Markdown (*.md *.markdown)")
+        if path:
+            self.credits_file.setText(self.markdown_path(path))
+
     def refresh_recent(self):
         self.recent.clear()
         for path in self.settings.value("recent", [], type=list):
@@ -341,6 +398,11 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
                 widget.setPlainText("\n".join(value) if isinstance(value, list) else value or "")
             else:
                 widget.setText(value or "")
+        self.resource_files.clear()
+        self.resource_files.addItems(project.data["editorial"]["resources"])
+        self.credits_file.setText(project.data["editorial"]["credits"] or "")
+        self.credits_controls.setEnabled(True)
+        self.resources_page.setEnabled(True)
         self.loading = False
         self.dirty = False
         self.setWindowTitle(f"Studio Aldines — {project.path.name}")
@@ -368,6 +430,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
                 elif group == "corpus" and key in ("license", "citation", "publication_date") and not value.strip():
                     value = None
             data[group][key] = value
+        data["editorial"]["resources"] = [self.resource_files.item(i).text() for i in range(self.resource_files.count())]
+        data["editorial"]["credits"] = self.credits_file.text() or None
         if self.corpus is not None:
             leaves = self.leaves()
             checked = [leaf.data(0, Qt.UserRole) for leaf in leaves if leaf.checkState(0) == Qt.Checked]

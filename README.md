@@ -31,6 +31,16 @@ Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Dri
 
 Un astérisque dans le titre indique les réglages non enregistrés. Le message « Projet enregistré. » apparaît à côté du bouton après la sauvegarde. Une génération utilise les réglages actuellement affichés, même avant sauvegarde. Enregistrez le projet pour pouvoir reproduire ce rendu en ligne de commande. Choisissez un dossier de sortie vide ou déjà généré par Aldines, qui remplacera son contenu lors des générations suivantes.
 
+## Publier des ressources et des crédits
+
+Dans **Ressources**, juste après **Présentation**, ajoutez les fichiers `.md` ou `.markdown` à publier. Dans **Projet**, utilisez **Projet et crédits → Choisir le Markdown…** pour sélectionner le fichier unique de cette page. Sans ce fichier, la page reprend les métadonnées du projet. Enregistrez les réglages dans **Projet**, puis générez le site.
+
+Les fichiers doivent être en UTF-8 et rester hors du dossier de sortie. Installez Pandoc et vérifiez que la commande `pandoc --version` fonctionne avant de générer un site avec des fichiers Markdown. Chaque document est publié en HTML avec un lien de téléchargement du XML-TEI. Pour donner un titre à une ressource, utilisez `title: Mon titre` dans un en-tête YAML entre deux lignes `---`. Sans titre, le nom du fichier sert de titre.
+
+Le dossier de publication contient aussi une copie de chaque Markdown à côté de sa page et du XML-TEI, ainsi qu’un fichier `aldines.json` avec les réglages utilisés et une notice `LISEZ-MOI.txt`. Le JSON conserve les chemins configurés dans le projet. Ces fichiers sont accessibles si le dossier complet est mis en ligne.
+
+Le Markdown accepte notamment `*italique*`, `**gras**`, `[souligné]{.underline}`, `[lien](https://example.org)`, les listes à puces et numérotées, ainsi que les notes avec un appel `[^1]` et une définition `[^1]: Texte de la note.`.
+
 Dans le site, toutes les pages présentent le bandeau complet : Sommaire, Rechercher, Clair / sombre, Lecture et son menu latin/français/bilingue, Options d’affichage. Ce dernier contient les six réglages de notes, manchettes, pages, colonnes, incertitudes et identifiants. Les préférences de lecture sont conservées dans le navigateur. L’alignement à gauche ou justifié est exclusivement décidé dans Studio Aldines, puis appliqué par la génération. Le sommaire propose trois sélections liées : tome, livre et section/chapitre, avec les nombres de phrases et de traductions, puis « Ouvrir le texte ». La dernière sélection est mémorisée. Une liste complète dépliable reste disponible, y compris sans JavaScript.
 
 ## Ligne de commande

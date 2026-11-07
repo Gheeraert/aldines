@@ -3,9 +3,10 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import shutil
 from urllib.parse import unquote, urlsplit
 
-from lxml import html
+from lxml import etree, html
 import pytest
 
 from aldines.augustinus import read_corpus
@@ -31,7 +32,7 @@ def test_header_uses_project_subtitle_without_added_laboratory(project, subtitle
 def test_complete_reading_controls_and_editor_alignment_on_edition_pages(project):
     project.data['appearance']['text_align'] = 'justify'
     result = build(project)
-    editorial_pages = [result.output / route / 'index.html' for route in ('', 'ressources')]
+    editorial_pages = [result.output / route / 'index.html' for route in ('', 'ressources', 'projet')]
     for path in set(result.output.rglob('index.html')) - set(editorial_pages):
         doc = html.parse(str(path))
         assert doc.xpath('//label[select[@id="reading-mode"]]')
@@ -164,6 +165,72 @@ def assert_site_links(output):
             assert target.exists(), (f, url)
             if parts.fragment:
                 assert unquote(parts.fragment) in docs[target].xpath("//@id"), (f, url)
+
+
+@pytest.mark.skipif(not shutil.which("pandoc"), reason="Pandoc est facultatif")
+def test_publish_markdown_resources_and_separate_credits(project):
+    resource = project.path.parent / "Étude.md"
+    resource.write_text("""---
+title: Étude sur la grâce
+---
+
+## Introduction
+
+*italique*, **gras**, [souligné]{.underline}, [site](https://example.org) et note[^a].
+
+[^a]: Note éditoriale.
+
+1. Premier
+2. Second
+
+- Une puce
+
+[Lien dangereux](javascript:alert%281%29)
+""", encoding="utf-8")
+    second = resource.parent / "autre" / resource.name
+    second.parent.mkdir()
+    second.write_text("Autre document.", encoding="utf-8")
+    credits = resource.parent / "credits.markdown"
+    credits.write_bytes("\ufeffCrédits propres au **projet**.\r\n".encode("utf-8"))
+    project.data["editorial"] = {"resources": [resource.name, str(second)], "credits": credits.name}
+    project.save()
+    result = build(load_project(project.path))
+    assert_site_links(result.output)
+    index = html.parse(str(result.output / "ressources/index.html"))
+    links = index.xpath('//section[@aria-labelledby="documents"]//li/a')
+    assert [(link.get("href"), link.text) for link in links] == [
+        ("document-etude/", "Étude sur la grâce"),
+        ("document-etude-2/", "Étude"),
+    ]
+    route = result.output / "ressources/document-etude"
+    doc = html.parse(str(route / "index.html"))
+    assert doc.xpath("string(//h1)") == "Étude sur la grâce"
+    assert len(doc.xpath("//em[text()='italique'] | //strong[text()='gras'] | //u[text()='souligné']")) == 3
+    assert doc.xpath("//ol/li[contains(., 'Premier')]") and doc.xpath("//ul/li[contains(., 'Une puce')]")
+    assert doc.xpath('//a[@role="doc-noteref"]') and doc.xpath('//a[@role="doc-backlink"]')
+    assert doc.xpath('//a[@href="https://example.org"]')
+    assert not doc.xpath('//a[starts-with(@href, "javascript:")]')
+    ns = {"tei": "http://www.tei-c.org/ns/1.0"}
+    xml = etree.parse(str(route / "document.xml"))
+    assert xml.xpath("string(//tei:titleStmt/tei:title)", namespaces=ns) == "Étude sur la grâce"
+    fallback = etree.parse(str(result.output / "ressources/document-etude-2/document.xml"))
+    assert fallback.xpath("string(//tei:titleStmt/tei:title)", namespaces=ns) == "Étude"
+    assert xml.xpath("//tei:note", namespaces=ns)
+    assert xml.xpath("//tei:hi[@rendition='simple:underline']", namespaces=ns)
+    assert xml.xpath("//tei:publicationStmt/tei:p", namespaces=ns)
+    assert "Crédits propres" in (result.output / "projet/index.html").read_text(encoding="utf-8")
+    assert (result.output / "projet/document.xml").is_file()
+    assert (result.output / "projet" / credits.name).read_bytes() == credits.read_bytes()
+    assert (route / resource.name).read_bytes() == resource.read_bytes()
+    assert (result.output / "ressources/document-etude-2" / second.name).read_bytes() == second.read_bytes()
+    assert json.loads((result.output / "aldines.json").read_text(encoding="utf-8")) == project.data
+    notice = (result.output / "LISEZ-MOI.txt").read_text(encoding="utf-8")
+    assert "Studio Aldines" in notice and "Pandoc" in notice
+    assert "Crédits propres" not in (result.output / "ressources/index.html").read_text(encoding="utf-8")
+    project.data["editorial"]["resources"] = ["absent.md"]
+    with pytest.raises(ProjectError, match="absent.md"):
+        build(project)
+    assert (route / "document.xml").is_file()
 
 
 def test_static_build_navigation_subdirectory_and_no_source_writes(project):

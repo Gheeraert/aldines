@@ -11,6 +11,8 @@ class ProjectError(ValueError):
     pass
 
 
+MARKDOWN_SUFFIXES = {".md", ".markdown"}
+
 DEFAULTS = {
     "schema_version": 1,
     "corpus": {"id": "augustinus", "title": "", "subtitle": "Édition numérique bilingue",
@@ -20,6 +22,7 @@ DEFAULTS = {
                "status": "Édition en cours", "license": None, "citation": None,
                "identifiers": [], "publication_date": None, "version": "0.1"},
     "sources": {"directory": "tei/t1", "master": "tei/t1/aug-t1.xml", "selection": None},
+    "editorial": {"resources": [], "credits": None},
     "reading": {"default_mode": "bilingual", "show_marginalia": True, "show_notes": True,
                 "show_page_numbers": True, "show_column_markers": True,
                 "show_uncertainties": True, "show_sentence_ids": False},
@@ -63,7 +66,7 @@ class Project:
 def validate(data):
     if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ProjectError("schema_version doit valoir 1.")
-    for group in ("corpus", "sources", "reading", "appearance", "publication"):
+    for group in ("corpus", "sources", "editorial", "reading", "appearance", "publication"):
         if not isinstance(data.get(group), dict):
             raise ProjectError(f"{group} doit être un objet JSON.")
     for group, keys in {"sources": ["directory", "master"], "publication": ["output"]}.items():
@@ -79,6 +82,13 @@ def validate(data):
     selection = data["sources"].get("selection")
     if selection is not None and (not isinstance(selection, list) or any(not isinstance(v, str) for v in selection)):
         raise ProjectError("sources.selection doit être null (tout) ou une liste d’identifiants.")
+    editorial = data["editorial"]
+    resources, credits = editorial.get("resources"), editorial.get("credits")
+    if not isinstance(resources, list) or any(not isinstance(path, str) or Path(path).suffix.lower() not in MARKDOWN_SUFFIXES
+                                              for path in resources):
+        raise ProjectError("Les ressources doivent être une liste de fichiers Markdown (.md ou .markdown).")
+    if credits is not None and (not isinstance(credits, str) or Path(credits).suffix.lower() not in MARKDOWN_SUFFIXES):
+        raise ProjectError("Projet et crédits : choisir un seul fichier Markdown (.md ou .markdown).")
     for key in DEFAULTS["reading"]:
         if key != "default_mode" and type(data["reading"].get(key)) is not bool:
             raise ProjectError(f"reading.{key} doit être true ou false.")

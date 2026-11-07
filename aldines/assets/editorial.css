@@ -240,6 +240,28 @@
 .editorial .resource-index h1 { font-size: clamp(2rem, 4.5vw, 3.5rem); }
 .editorial .resource-index h2 { font-size: clamp(1.5rem, 2.9vw, 2.55rem); }
 
+.editorial .resource-index :is(p, dd),
+.editorial .markdown-body li {
+  text-align: justify;
+  hyphens: auto;
+}
+
+.editorial .markdown-body {
+  overflow-wrap: anywhere;
+}
+
+.editorial .markdown-body h2 {
+  margin-top: 1em;
+}
+
+.editorial .markdown-body pre {
+  overflow: auto;
+}
+
+.editorial .markdown-body .footnotes {
+  font-size: .9em;
+}
+
 .editorial .resource-index section {
   margin-top: 2rem;
   padding-top: 1.5rem;

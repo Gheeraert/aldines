@@ -5,9 +5,10 @@ from html import escape as esc
 EDITORIAL_ASSETS = ("editorial.css", "frontispice-1641.webp")
 
 
-def editorial_page(meta, title, body, *, root="./", on_resources=False):
-    resources_current = ' aria-current="page"' if on_resources else ""
-    home_current = "" if on_resources else ' aria-current="page"'
+def editorial_page(meta, title, body, *, root="./", current="accueil"):
+    def active(page):
+        return ' aria-current="page"' if current == page else ""
+
     return f'''<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -16,12 +17,12 @@ def editorial_page(meta, title, body, *, root="./", on_resources=False):
 <body class="editorial">
 <a class="skip-link" href="#main">Aller au contenu</a>
 <header class="editorial-header">
-<a class="brand" href="{root}"{home_current}><span class="printer-mark" aria-hidden="true">A</span>
+<a class="brand" href="{root}"{active('accueil')}><span class="printer-mark" aria-hidden="true">A</span>
 <span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
 <nav aria-label="Navigation principale">
 <a href="{root}contents/">Édition</a>
-<a href="{root}ressources/"{resources_current}>Études et ressources</a>
-<a href="{root}ressources/#projet">Le projet</a>
+<a href="{root}ressources/"{active('ressources')}>Études et ressources</a>
+<a href="{root}projet/"{active('projet')}>Le projet</a>
 </nav>
 </header>
 <div class="editorial-frame">
@@ -29,7 +30,7 @@ def editorial_page(meta, title, body, *, root="./", on_resources=False):
 <footer class="editorial-footer">
 <nav aria-label="Navigation éditoriale">
 <a href="{root}ressources/#presentation">Présentation de l’œuvre</a>
-<a href="{root}ressources/#projet">Projet et crédits</a>
+<a href="{root}projet/">Projet et crédits</a>
 </nav>
 </footer>
 </div>
@@ -65,7 +66,35 @@ alt="Frontispice gravé montrant saint Augustin brandissant un cœur enflammé, 
 </div>''')
 
 
-def resources(meta):
+def resources(meta, documents):
+    listing = "".join(f'<li><a href="{slug}/">{esc(title)}</a></li>' for slug, title in documents)
+    return editorial_page(meta, "Études et ressources", f'''<div class="resource-index">
+<h1>Études et ressources</h1>
+<p>Cette rubrique rassemble les articles, bibliographies et documents complémentaires sur l’<cite lang="la">Augustinus</cite>.</p>
+<section aria-labelledby="presentation">
+<h2 id="presentation">Présentation de l’œuvre</h2>
+<p>Dans l’<cite lang="la">Augustinus</cite>, Cornelius Jansenius aborde la nature humaine et la grâce à travers la controverse pélagienne.</p>
+<p><a href="../contents/">Lire l’édition <span aria-hidden="true">→</span></a></p>
+</section>
+<section aria-labelledby="documents">
+<h2 id="documents">Documents</h2>
+{'<ul>' + listing + '</ul>' if listing else '<p>Aucun document publié pour le moment.</p>'}
+</section>
+<p id="projet"><a href="../projet/">Projet et crédits</a></p>
+</div>''', root="../", current="ressources")
+
+
+def editorial_document(meta, document, *, credits=False):
+    title = "Projet et crédits" if credits else document.title
+    back = "" if credits else '<p><a href="../">← Études et ressources</a></p>'
+    return editorial_page(meta, title, f'''<article class="resource-index">
+{back}<h1>{esc(title)}</h1>
+<div class="markdown-body">{document.body}</div>
+<p><a href="document.xml" download>Télécharger le XML-TEI</a></p>
+</article>''', root="../" if credits else "../../", current="projet" if credits else "document")
+
+
+def project_credits(meta):
     fields = [
         ("Auteur", meta.get("author")),
         ("Responsable scientifique", meta.get("editor")),
@@ -85,19 +114,10 @@ def resources(meta):
         if meta.get(key):
             items = "".join(f"<li>{esc(value)}</li>" for value in meta[key])
             extra.append(f"<h3>{heading}</h3><ul>{items}</ul>")
-    return editorial_page(meta, "Études et ressources", f'''<div class="resource-index">
-<h1>Études et ressources</h1>
-<p>Cette rubrique est destinée à accueillir des articles scientifiques, des études historiques et théologiques, des bibliographies et des documents complémentaires sur l’<cite lang="la">Augustinus</cite>.</p>
-<section aria-labelledby="presentation">
-<h2 id="presentation">Présentation de l’œuvre</h2>
-<p>Dans l’<cite lang="la">Augustinus</cite>, Cornelius Jansenius aborde la nature humaine et la grâce à travers la controverse pélagienne.</p>
-<p><a href="../contents/">Lire l’édition <span aria-hidden="true">→</span></a></p>
-</section>
-<section aria-labelledby="projet">
-<h2 id="projet">Projet et crédits</h2>
+    return editorial_page(meta, "Projet et crédits", f'''<article class="resource-index">
+<h1>Projet et crédits</h1>
 {description}
 <dl>{details}</dl>
 {''.join(extra)}
 <p>Édition numérique réalisée avec Studio Aldines.</p>
-</section>
-</div>''', root="../", on_resources=True)
+</article>''', root="../", current="projet")

@@ -8,11 +8,14 @@ import re
 import shutil
 import tempfile
 import time
+import unicodedata
 from urllib.parse import quote
 
+from . import __version__
 from .augustinus import read_corpus
 from .config import ProjectError, validate
-from .editorial import EDITORIAL_ASSETS, home, resources
+from .editorial import EDITORIAL_ASSETS, editorial_document, home, project_credits, resources
+from .markdown import read_markdown
 
 MARKER = ".aldines-generated"
 
@@ -157,6 +160,10 @@ def check_output(project, output):
     if (output == project.path.parent or project.path.parent.is_relative_to(output)
             or output.is_relative_to(source) or source.is_relative_to(output)):
         raise ProjectError("Le dossier de sortie doit être distinct du projet et des sources TEI.")
+    editorial = project.data["editorial"]
+    for path in [*editorial["resources"], editorial["credits"]]:
+        if path and project.resolve(path).is_relative_to(output):
+            raise ProjectError("Placez les fichiers Markdown hors du dossier de sortie.")
     if output.exists() and (not output.is_dir() or output.is_symlink()):
         raise ProjectError("La sortie doit être un dossier ordinaire dédié à la publication.")
     if output.exists() and any(output.iterdir()) and not (output / MARKER).is_file():
@@ -207,8 +214,33 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
             destination = stage / route / "index.html"
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(value, encoding="utf-8")
+
+        def write_document(route, filename, *, credits=False):
+            name = Path(filename).name
+            progress(f"Conversion Markdown : {name}")
+            document = read_markdown(project.resolve(filename))
+            write(route, editorial_document(meta, document, credits=credits))
+            (stage / route / "document.xml").write_bytes(document.tei)
+            (stage / route / name).write_bytes(document.source)
+            return document.title
+
         write("", home(meta))
-        write("ressources", resources(meta))
+        editorial = project.data["editorial"]
+        documents = {}
+        for filename in editorial["resources"]:
+            path = project.resolve(filename)
+            ascii_stem = unicodedata.normalize("NFKD", path.stem).encode("ascii", "ignore").decode().lower()
+            base = "document-" + (re.sub(r"[^a-z0-9]+", "-", ascii_stem)[:60].strip("-") or "ressource")
+            slug, suffix = base, 2
+            while slug in documents:
+                slug = f"{base}-{suffix}"
+                suffix += 1
+            documents[slug] = write_document(f"ressources/{slug}", filename)
+        write("ressources", resources(meta, documents.items()))
+        if editorial["credits"]:
+            write_document("projet", editorial["credits"], credits=True)
+        else:
+            write("projet", project_credits(meta))
         write("contents", page(project, meta, "Table des matières", contents(units), "contents/"))
         anchors = {}
         for u in units:
@@ -240,6 +272,25 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
         report["published_units"] = len(units)
         report["base_path"] = project.data["publication"]["base_path"]
         (stage / "build-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        (stage / "aldines.json").write_text(json.dumps(project.data, ensure_ascii=False, indent=2) + "\n",
+                                           encoding="utf-8")
+        notice = f"""Publication générée avec Studio Aldines {__version__}.
+Code et documentation : https://github.com/Gheeraert/aldines
+
+Ouvrir index.html via un serveur web statique. Pour un aperçu local,
+exécuter python -m aldines serve depuis le projet en indiquant ce dossier.
+
+aldines.json contient les réglages utilisés lors de la génération.
+Les chemins relatifs sont ceux du projet d’origine. Pour régénérer le site
+depuis cette copie, adapter les chemins vers le corpus et les fichiers Markdown.
+build-report.json consigne les diagnostics et le nombre d’unités publiées.
+"""
+        if documents or editorial["credits"]:
+            notice += ("\nLes fichiers Markdown ont été convertis avec Pandoc. Une copie de chaque\n"
+                       "source Markdown accompagne sa page HTML et son fichier document.xml.\n")
+        if only:
+            notice += f"\nAperçu limité à l’unité {only}.\n"
+        (stage / "LISEZ-MOI.txt").write_text(notice, encoding="utf-8")
         (stage / ".nojekyll").touch()
         # Le site précédent n’est remplacé qu’après la réussite de toute la génération.
         backup = None
