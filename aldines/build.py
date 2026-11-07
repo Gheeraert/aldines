@@ -207,7 +207,7 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
             destination = stage / route / "index.html"
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(value, encoding="utf-8")
-        write("", home())
+        write("", home(meta))
         write("ressources", resources(meta))
         write("contents", page(project, meta, "Table des matières", contents(units), "contents/"))
         anchors = {}

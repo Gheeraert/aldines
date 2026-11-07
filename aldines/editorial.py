@@ -5,7 +5,7 @@ from html import escape as esc
 EDITORIAL_ASSETS = ("editorial.css", "frontispice-1641.webp")
 
 
-def editorial_page(title, body, *, root="./", on_resources=False):
+def editorial_page(meta, title, body, *, root="./", on_resources=False):
     resources_current = ' aria-current="page"' if on_resources else ""
     home_current = "" if on_resources else ' aria-current="page"'
     return f'''<!doctype html>
@@ -15,15 +15,16 @@ def editorial_page(title, body, *, root="./", on_resources=False):
 <link rel="stylesheet" href="{root}assets/editorial.css"></head>
 <body class="editorial">
 <a class="skip-link" href="#main">Aller au contenu</a>
-<div class="editorial-frame">
 <header class="editorial-header">
-<a class="wordmark" href="{root}"{home_current}>Augustinus</a>
+<a class="brand" href="{root}"{home_current}><span class="printer-mark" aria-hidden="true">A</span>
+<span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
 <nav aria-label="Navigation principale">
 <a href="{root}contents/">Édition</a>
 <a href="{root}ressources/"{resources_current}>Études et ressources</a>
 <a href="{root}ressources/#projet">Le projet</a>
 </nav>
 </header>
+<div class="editorial-frame">
 <main id="main" tabindex="-1">{body}</main>
 <footer class="editorial-footer">
 <nav aria-label="Navigation éditoriale">
@@ -35,8 +36,8 @@ def editorial_page(title, body, *, root="./", on_resources=False):
 </body></html>'''
 
 
-def home():
-    return editorial_page("Accueil", '''<section class="intro" aria-labelledby="titre">
+def home(meta):
+    return editorial_page(meta, "Accueil", '''<section class="intro" aria-labelledby="titre">
 <div class="intro-copy">
 <h1 id="titre" lang="la">Augustinus</h1>
 <p class="author">Cornelius Jansenius</p>
@@ -84,7 +85,7 @@ def resources(meta):
         if meta.get(key):
             items = "".join(f"<li>{esc(value)}</li>" for value in meta[key])
             extra.append(f"<h3>{heading}</h3><ul>{items}</ul>")
-    return editorial_page("Études et ressources", f'''<div class="resource-index">
+    return editorial_page(meta, "Études et ressources", f'''<div class="resource-index">
 <h1>Études et ressources</h1>
 <p>Cette rubrique est destinée à accueillir des articles scientifiques, des études historiques et théologiques, des bibliographies et des documents complémentaires sur l’<cite lang="la">Augustinus</cite>.</p>
 <section aria-labelledby="presentation">
