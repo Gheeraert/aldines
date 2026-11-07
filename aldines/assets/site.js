@@ -37,11 +37,21 @@
     changeMode(e.target.value);
     storage.set('reading-mode', e.target.value);
   });
-  one('#reader-options')?.addEventListener('click', e => {
-    const panel = one('#display-options');
-    panel.hidden = !panel.hidden;
-    e.target.setAttribute('aria-expanded', String(!panel.hidden));
-  });
+  const optionsButton = one('#reader-options');
+  const optionsPanel = one('#display-options');
+  if (optionsButton && optionsPanel) {
+    function setOptionsOpen(open) {
+      optionsPanel.hidden = !open;
+      optionsButton.setAttribute('aria-expanded', String(open));
+    }
+    optionsButton.addEventListener('click', () => setOptionsOpen(optionsPanel.hidden));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !optionsPanel.hidden) {
+        setOptionsOpen(false);
+        optionsButton.focus({preventScroll: true});
+      }
+    });
+  }
   document.querySelectorAll('[data-option]').forEach(input => {
     const saved = storage.get('show-' + input.dataset.option);
     if (saved === 'true' || saved === 'false') input.checked = saved === 'true';

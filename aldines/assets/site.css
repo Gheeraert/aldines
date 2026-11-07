@@ -344,6 +344,16 @@ dd {
   padding:8px var(--page-gutter);
   font-size:13px
 }
+.reading-header + #display-options {
+  position:fixed;
+  top:var(--header-height,0px);
+  inset-inline:var(--page-gutter);
+  z-index:6;
+  min-inline-size:0;
+  max-height:calc(100dvh - var(--header-height,0px) - 16px);
+  overflow:auto;
+  background:var(--paper)
+}
 #display-options label {
   display:inline-flex;
   gap:8px;

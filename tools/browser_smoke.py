@@ -12,6 +12,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aldines.preview import start_preview
 
 
+def check_scrolled_display_options(page):
+    page.evaluate("window.scrollTo(0, 850)")
+    scroll = page.evaluate("window.scrollY")
+    assert scroll > 0
+    button = page.locator("#reader-options")
+    panel = page.locator("#display-options")
+    assert panel.is_hidden()
+    # Un clic physique sur le bandeau fixe ne demande aucun défilement préalable.
+    bounds = button.bounding_box()
+    page.mouse.click(bounds["x"] + bounds["width"] / 2, bounds["y"] + bounds["height"] / 2)
+    assert button.get_attribute("aria-expanded") == "true"
+    assert panel.evaluate("""panel => {
+        const rect = panel.getBoundingClientRect();
+        const header = document.querySelector('.reading-header').getBoundingClientRect();
+        return rect.top >= header.bottom && rect.bottom <= innerHeight && rect.height > 0;
+    }""")
+    assert page.evaluate("window.scrollY") == scroll
+    page.keyboard.press("Tab")
+    assert page.locator("#display-options input:focus").count() == 1
+    page.keyboard.press("Escape")
+    assert panel.is_hidden()
+    assert button.get_attribute("aria-expanded") == "false"
+    assert button.evaluate("button => button === document.activeElement")
+    assert page.evaluate("window.scrollY") == scroll
+
+
 def main():
     from playwright.sync_api import sync_playwright
     parser = argparse.ArgumentParser()
@@ -40,6 +66,8 @@ def main():
             page.locator('#nav-unit').select_option('../t1/l1/s01/')
             page.locator('#nav-open').click()
             assert page.locator(".aligned-row.sentence").count() == 74
+            check_scrolled_display_options(page)
+            page.evaluate("window.scrollTo(0, 0)")
             page.locator(".note-call").first.click()
             assert page.locator(".note-content").first.is_visible()
             page.screenshot(path=str(shots / "reader-desktop.png"), full_page=False)
@@ -76,6 +104,9 @@ def main():
             assert page.locator(".aligned-row.sentence").first.locator(".latin").is_visible()
             assert page.locator(".aligned-row.sentence").first.locator(".french").is_visible()
             page.screenshot(path=str(shots / "reader-mobile.png"), full_page=False)
+            check_scrolled_display_options(page)
+            page.set_viewport_size({"width": 667, "height": 375})
+            check_scrolled_display_options(page)
             # Sous-répertoire : le serveur sert ici le projet, donc /publication/.
             parent_server, parent_url = start_preview(root)
             try:
