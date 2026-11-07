@@ -511,6 +511,9 @@ dd {
   font:15px/1.5 var(--reading-font);
   font-style:italic
 }
+.french .note-content[data-note-type="trad"],.french .note-content[data-note-type="source"] {
+  font-size:clamp(11px,calc(var(--text-size) * .72),13px)
+}
 .missing {
   color:var(--muted);
   font-size:.8em

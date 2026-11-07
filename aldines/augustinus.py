@@ -277,9 +277,12 @@ class Inline:
         if name == "note":
             marginal = e.get("place", "").startswith("margin")
             cls = "marginalia" if marginal else "note"
-            label = "Manchette" if marginal else {"trad": "Traduction", "source": "Source"}.get(e.get("type"), "Note")
+            note_type = e.get("type")
+            label = "Manchette" if marginal else {"trad": "Traduction", "source": "Source"}.get(note_type, "Note")
             label += " " + e.get("n", "")
-            return f'<span{ident} class="{cls}"><button type="button" class="note-call" aria-expanded="false">{esc(label.strip())}</button><span class="note-content" hidden>{value}</span></span>'
+            kind = f' data-note-type="{note_type}"' if not marginal and note_type in ("trad", "source") else ""
+            return (f'<span{ident} class="{cls}"><button type="button" class="note-call" aria-expanded="false">'
+                    f'{esc(label.strip())}</button><span class="note-content"{kind} hidden>{value}</span></span>')
         if name == "choice":
             chosen = next((c for c in e if tag(c) in ("abbr", "sic", "orig")), None)
             alternative = next((c for c in e if tag(c) in ("expan", "corr", "reg")), None)
