@@ -39,6 +39,7 @@ DEFAULTS = {
                    "line_height": 1.65, "content_width": 1200, "column_ratio": 50,
                    "text_align": "left"},
     "publication": {"output": "publication", "base_path": "/", "origin": ""},
+    "books": {},
 }
 
 
@@ -78,6 +79,14 @@ def validate(data):
     for group in ("corpus", "sources", "editorial", "reading", "appearance", "publication"):
         if not isinstance(data.get(group), dict):
             raise ProjectError(f"{group} doit être un objet JSON.")
+    books = data.get("books", {})
+    if not isinstance(books, dict):
+        raise ProjectError("books doit être un objet JSON.")
+    for key, label in books.items():
+        if not re.fullmatch(r"t\d+\.(?:l\d+|[a-z]{2,}(?:-l\d+)?)", key):
+            raise ProjectError(f"books.{key} : clé de la forme t2.lp, t2.nl-l1 ou t1.l3 attendue.")
+        if not isinstance(label, str) or not label.strip() or len(label) > 200:
+            raise ProjectError(f"books.{key} : libellé non vide de 200 caractères au plus attendu.")
     for group, keys in {"sources": ["directory", "master"], "publication": ["output"]}.items():
         for key in keys:
             if not isinstance(data[group].get(key), str) or not data[group][key].strip():

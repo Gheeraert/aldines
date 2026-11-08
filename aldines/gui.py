@@ -589,7 +589,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         for u in corpus.units:
             key = (u.tome, u.book)
             if key not in groups:
-                group = QTreeWidgetItem(self.tree, [f"Tome {u.tome} · Livre {u.book}"])
+                group = QTreeWidgetItem(self.tree, [f"Tome {u.tome} · {u.book_label}"])
                 group.setFlags(group.flags() | Qt.ItemIsAutoTristate | Qt.ItemIsUserCheckable)
                 groups[key] = group
             leaf = QTreeWidgetItem(groups[key], [f"{u.label} — {u.file.name}", str(u.sentences), str(u.translated),
@@ -598,7 +598,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
             leaf.setFlags(leaf.flags() | Qt.ItemIsUserCheckable)
             leaf.setCheckState(0, Qt.Checked if selected is None or u.id in selected else Qt.Unchecked)
             leaf.setToolTip(0, u.title)
-            self.preview_unit.addItem(f"Tome {u.tome} · Livre {u.book} · {u.label}", u.id)
+            self.preview_unit.addItem(f"Tome {u.tome} · {u.book_label} · {u.label}", u.id)
         self.tree.expandAll()
         self.tree.resizeColumnToContents(0)
         self.summary.setText(f"{len(corpus.units)} unités · {sum(u.sentences for u in corpus.units)} phrases latines · {len(corpus.issues)} diagnostic(s)")

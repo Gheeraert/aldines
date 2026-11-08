@@ -22,10 +22,17 @@ XID = "{http://www.w3.org/XML/1998/namespace}id"
 LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 KNOWN = set("text body div p s head trailer note quote title foreign hi milestone pb cb fw lb "
             "sic corr unclear gap choice abbr expan lg l ref seg name num date emph supplied del add".split())
+# Les numéros internes font partie des URL et des sélections déjà enregistrées.
 TOME2_BOOKS = {
-    ("lp", None): 1, ("ni", None): 2,
-    ("nl", 1): 3, ("nl", 2): 4, ("nl", 3): 5, ("nl", 4): 6,
-    ("np", 1): 7, ("np", 2): 8, ("np", 3): 9,
+    "lp": (1, "Livre introductif"),
+    "ni": (2, "De l’état de nature innocente"),
+    "nl-l1": (3, "De l’état de nature déchue, livre I"),
+    "nl-l2": (4, "De l’état de nature déchue, livre II"),
+    "nl-l3": (5, "De l’état de nature déchue, livre III"),
+    "nl-l4": (6, "De l’état de nature déchue, livre IV"),
+    "np-l1": (7, "De l’état de pure nature, livre I"),
+    "np-l2": (8, "De l’état de pure nature, livre II"),
+    "np-l3": (9, "De l’état de pure nature, livre III"),
 }
 
 
@@ -74,13 +81,16 @@ def unit_identity(value):
     numeric = re.search(r"t(\d+)\.l(\d+)\.([sc])(\d+)", value)
     if numeric:
         tome, book, kind, number = numeric.groups()
-        return int(tome), int(book), kind, int(number)
+        book = int(book)
+        return int(tome), f"l{book}", book, kind, int(number), f"Livre {book}"
     named = re.search(r"t2\.(lp|ni|nl|np)(?:\.l(\d+))?\.c(\d+)(?=\.|$)", value)
     if named:
         part, sub_book, number = named.groups()
-        book = TOME2_BOOKS.get((part, int(sub_book) if sub_book is not None else None))
-        if book is not None:
-            return 2, book, "c", int(number)
+        if sub_book is not None:
+            part = f"{part}-l{int(sub_book)}"
+        if part in TOME2_BOOKS:
+            book, book_label = TOME2_BOOKS[part]
+            return 2, part, book, "c", int(number), book_label
     return None
 
 
@@ -166,12 +176,13 @@ class Reader:
         if identity is None:
             self.issue("error", path, "Identité Augustinus introuvable (tome/livre/section ou chapitre).", ed)
             return None
-        tome, book, kind, number = identity
+        tome, part, book, kind, number, default_book_label = identity
         uid = f"t{tome}.l{book:02}.{kind}{number:02}"
         label = f"{'Section' if kind == 's' else 'Chapitre'} {number}"
+        book_label = self.project.data.get("books", {}).get(f"t{tome}.{part}", default_book_label).strip()
         unit = Unit(uid, path, metadata(root).get("title") or label,
                     f"t{tome}/l{book}/{kind}{number:02}/", tome, book, label,
-                    metadata=metadata(root))
+                    book_label=book_label, metadata=metadata(root))
         for body in (ed, fr):
             if body is None:
                 continue

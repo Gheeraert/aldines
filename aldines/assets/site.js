@@ -98,7 +98,7 @@
   const navigator = one('#corpus-navigator');
   if (navigator) {
     const entries = [...document.querySelectorAll('.contents-list li')].map(li => ({
-      tome: li.dataset.tome, book: li.dataset.book,
+      tome: li.dataset.tome, book: li.dataset.book, bookLabel: li.dataset.bookLabel || `Livre ${li.dataset.book}`,
       sentences: Number(li.dataset.sentences), translated: Number(li.dataset.translated),
       label: li.querySelector('a').textContent, href: li.querySelector('a').getAttribute('href')
     }));
@@ -112,7 +112,7 @@
       const selected = inBook.find(e => e.href === unit.value);
       if (!selected) return;
       const total = key => inBook.reduce((sum, e) => sum + e[key], 0);
-      one('#nav-summary').textContent = `Livre ${book.value} : ${total('sentences')} phrases, ${total('translated')} traduites. Sélection : ${selected.sentences} phrases, ${selected.translated} traduites.`;
+      one('#nav-summary').textContent = `${selected.bookLabel} : ${total('sentences')} phrases, ${total('translated')} traduites. Sélection : ${selected.sentences} phrases, ${selected.translated} traduites.`;
       one('#nav-open').href = selected.href;
       storage.set('navigation', JSON.stringify({tome: tome.value, book: book.value, unit: unit.value}));
     }
@@ -123,7 +123,12 @@
     }
     function updateTome(preferredBook, preferredUnit) {
       const inTome = entries.filter(e => e.tome === tome.value);
-      fill(book, [...new Set(inTome.map(e => e.book))].map(b => [b, `Livre ${b} — ${inTome.filter(e => e.book === b).length} unités`]), preferredBook);
+      const books = new Map();
+      for (const entry of inTome) {
+        if (!books.has(entry.book)) books.set(entry.book, {label: entry.bookLabel, count: 0});
+        books.get(entry.book).count++;
+      }
+      fill(book, [...books].map(([id, {label, count}]) => [id, `${label} — ${count} unités`]), preferredBook);
       updateBook(preferredUnit);
     }
     let previous = {};
@@ -158,7 +163,8 @@
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = body.dataset.root + record.route + '#' + encodeURIComponent(record.anchor);
-        a.textContent = `Livre ${record.book} · ${record.unit} · ${lang === 'la' ? 'Latin' : 'Français'}`;
+        const bookLabel = record.book_label || `Livre ${record.book}`;
+        a.textContent = `${bookLabel} · ${record.unit} · ${lang === 'la' ? 'Latin' : 'Français'}`;
         const p = document.createElement('p');
         p.lang = lang;
         // Les ligatures peuvent changer la longueur normalisée : le passage

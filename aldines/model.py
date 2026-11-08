@@ -34,6 +34,7 @@ class Unit:
     tome: int
     book: int
     label: str
+    book_label: str
     rows: list[Row] = field(default_factory=list)
     translated: int = 0
     sentences: int = 0

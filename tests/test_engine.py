@@ -380,12 +380,33 @@ def test_publish_nested_masters_for_three_volumes(project):
     assert [unit.route for unit in units] == ["t1/l1/s02/", "t1/l1/s01/",
                                                *(f"t2/l{book}/c01/" for book in range(1, 10)),
                                                "t3/l1/c01/"]
+    assert [unit.id for unit in units[2:-1]] == [f"t2.l{book:02}.c01" for book in range(1, 10)]
     assert any(issue.file == "a-venir.xml" and issue.level == "warning" for issue in result.corpus.issues)
     assert units[-1].translated == 0
+    contents = html.parse(str(result.output / "contents/index.html"))
+    assert contents.xpath('//h3/text()') == [
+        "Livre 1", "Livre introductif", "De l’état de nature innocente",
+        *(f"De l’état de nature déchue, livre {n}" for n in ("I", "II", "III", "IV")),
+        *(f"De l’état de pure nature, livre {n}" for n in ("I", "II", "III")),
+        "Livre 1",
+    ]
+    assert contents.xpath('//li[@data-tome="2" and @data-book="1"]/@data-book-label') == ["Livre introductif"]
     t2_page = html.parse(str(result.output / "t2/l1/c01/index.html"))
     assert t2_page.xpath('//*[@id="t2.lp.c01.la.s1"]')
+    assert "Livre introductif" in t2_page.xpath('string(//nav[@class="breadcrumb"])')
+    assert "LIVRE INTRODUCTIF" in t2_page.xpath('string(//p[@class="eyebrow"])')
+    assert "Livre introductif" in t2_page.xpath('string(//title)')
+    search = (result.output / "assets/search-data.js").read_text(encoding="utf-8")
+    assert '"book": 1, "book_label": "Livre introductif", "route": "t2/l1/c01/"' in search
     t3_page = html.parse(str(result.output / "t3/l1/c01/index.html"))
     assert t3_page.xpath('//em[@class="missing"]/text()') == ["Traduction à venir"] * 3
+
+    project.data["books"] = {"t2.lp": "Livre proémial", "t2.nl-l1": "Nature déchue — Livre 1"}
+    project.save()
+    relabelled = read_corpus(load_project(project.path)).units
+    assert relabelled[2].book_label == "Livre proémial"
+    assert relabelled[4].book_label == "Nature déchue — Livre 1"
+    assert [unit.route for unit in relabelled] == [unit.route for unit in units]
 
 
 def test_failures_preserve_previous_site_and_protect_other_directories(project):

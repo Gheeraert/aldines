@@ -108,9 +108,10 @@ def contents(units):
                 result.append("</ol>")
             if u.tome != last_tome:
                 result.append(f"<h2>Tome {u.tome}</h2>")
-            result.append(f'<h3>Livre {u.book}</h3><ol class="contents-list">')
+            result.append(f'<h3>{esc(u.book_label)}</h3><ol class="contents-list">')
             last_tome, last_book, opened = u.tome, u.book, True
-        result.append(f'<li data-tome="{u.tome}" data-book="{u.book}" data-sentences="{u.sentences}" data-translated="{u.translated}"><a href="{link("contents/", u.route)}">{esc(u.label)}</a>'
+        result.append(f'<li data-tome="{u.tome}" data-book="{u.book}" data-book-label="{esc(u.book_label)}" '
+                      f'data-sentences="{u.sentences}" data-translated="{u.translated}"><a href="{link("contents/", u.route)}">{esc(u.label)}</a>'
                       f'<span>{u.sentences} phrases · {u.translated} traduites</span></li>')
     if opened:
         result.append("</ol>")
@@ -144,9 +145,9 @@ def reader_page(unit, units, index, global_anchors):
         return f'<a{match.group(1)} href="{link(unit.route, route)}#{quote(target, safe=".")}"'
     # Seuls les liens créés par l’interpréteur portent data-tei-ref.
     rendered = re.sub(r'<a([^>]*?) href="[^"]*" data-tei-ref="([^"]+)"', resolve_ref, rendered)
-    return f'''<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="{link(unit.route)}">Accueil</a> / <a href="{link(unit.route, 'contents/')}">Tome {unit.tome} · Livre {unit.book}</a> / {esc(unit.label)}
+    return f'''<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="{link(unit.route)}">Accueil</a> / <a href="{link(unit.route, 'contents/')}">Tome {unit.tome} · {esc(unit.book_label)}</a> / {esc(unit.label)}
 <a class="tei-download" href="{quote(unit.file.name, safe='')}" download="{esc(unit.file.name)}" type="application/tei+xml">Télécharger le TEI</a></nav>
-<p class="eyebrow">AUGUSTINUS · TOME {unit.tome} · LIVRE {unit.book}</p><h1>{esc(unit.label)}</h1>
+<p class="eyebrow">AUGUSTINUS · TOME {unit.tome} · {esc(unit.book_label.upper())}</p><h1>{esc(unit.label)}</h1>
 <nav class="unit-nav" aria-label="Unités">{nav}</nav>
 <div class="language-headings"><span>Texte latin</span><span>Traduction française</span></div>
 <article class="reader" aria-label="Texte et traduction">{rendered}</article>
@@ -282,8 +283,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
             for ident in re.findall(r'\bid="([^"]+)"', "".join(r.latin + r.french for r in u.rows)):
                 anchors[ident] = u.route
         for i, u in enumerate(units):
-            progress(f"{i + 1}/{len(units)} · {u.label} · Livre {u.book}")
-            title = f"{u.label} · Livre {u.book} · Tome {u.tome}"
+            progress(f"{i + 1}/{len(units)} · {u.label} · {u.book_label}")
+            title = f"{u.label} · {u.book_label} · Tome {u.tome}"
             excerpt = next((row.french_text or row.latin_text for row in u.rows if row.french_text or row.latin_text), "")
             write(u.route, page, project, meta, title, reader_page(u, units, i, anchors), u.route, reader=True,
                   description=f"{title} · {meta['title']}. {excerpt}")
@@ -302,7 +303,7 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
                                                   encoding="utf-8")
         for name in ("site.css", "site.js", "footer.css", "editorial.css"):
             shutil.copyfile(bundled_assets / name, assets / name)
-        records = [{"unit": u.label, "book": u.book, "route": u.route, "anchor": r.anchor,
+        records = [{"unit": u.label, "book": u.book, "book_label": u.book_label, "route": u.route, "anchor": r.anchor,
                     "la": r.latin_text, "fr": r.french_text} for u in units for r in u.rows
                    if r.latin_text or r.french_text]
         search_json = json.dumps(records, ensure_ascii=False).replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
