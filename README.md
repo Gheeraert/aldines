@@ -31,6 +31,8 @@ Le fichier `aldines.json` est prêt pour les sources originales dans `G:/Mon Dri
 
 Un astérisque dans le titre indique les réglages non enregistrés. Le message « Projet enregistré. » apparaît à côté du bouton après la sauvegarde. Une génération utilise les réglages actuellement affichés, même avant sauvegarde. Enregistrez le projet pour pouvoir reproduire ce rendu en ligne de commande. Choisissez un dossier de sortie vide ou déjà généré par Aldines, qui remplacera son contenu lors des générations suivantes.
 
+Dans **Projet**, utilisez **Image d’accueil → Choisir une image…** pour sélectionner un fichier JPEG, PNG ou WebP. Renseignez la légende et le texte alternatif, enregistrez, puis régénérez le site. L’image source doit rester hors du dossier de sortie. Studio Aldines en publie une copie dans `assets/`. Le bouton **Rétablir le frontispice** rétablit également sa légende et sa description d’origine.
+
 ## Publier des ressources et des crédits
 
 Dans **Ressources**, juste après **Présentation**, ajoutez les fichiers `.md` ou `.markdown` à publier. Dans **Projet**, utilisez **Projet et crédits → Choisir le Markdown…** pour sélectionner le fichier unique de cette page. Sans ce fichier, la page reprend les métadonnées du projet. Enregistrez les réglages dans **Projet**, puis générez le site.

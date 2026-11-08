@@ -1,0 +1,24 @@
+.site-footer {
+  box-sizing: border-box;
+  max-width: 1440px;
+  margin: auto;
+  padding: 25px 42px;
+  border-top: 1px solid var(--line, #d9dbcf);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font: 11px/1.6 system-ui, sans-serif;
+  color: var(--muted, #62685f);
+}
+
+.site-footer p {
+  width: 100%;
+  margin: 5px 0;
+}
+
+.site-footer a { color: inherit; }
+
+@media (max-width: 700px) {
+  .site-footer { padding: 25px 20px; }
+}

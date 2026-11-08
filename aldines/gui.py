@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
 
 from .augustinus import read_corpus
 from .build import build
-from .config import DEFAULTS, Project, ProjectError, load_project, validate
+from .config import DEFAULTS, IMAGE_SUFFIXES, Project, ProjectError, load_project, validate
 from .preview import start_preview
 
 
@@ -78,6 +78,13 @@ class Window(QMainWindow):
         self.make_publication()
         self.navigation.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.navigation.setCurrentRow(0)
+        self.busy_indicator = QProgressBar()
+        self.busy_indicator.setRange(0, 0)
+        self.busy_indicator.setTextVisible(False)
+        self.busy_indicator.setAccessibleName("Opération en cours")
+        self.busy_indicator.setFixedSize(100, 12)
+        self.statusBar().addPermanentWidget(self.busy_indicator)
+        self.busy_indicator.hide()
         self.statusBar().showMessage("Ouvrez un projet pour commencer.")
         self.setStyleSheet('''
 QMainWindow,QWidget{background:#f7f6f0;color:#29352d;font-size:13px}
@@ -191,6 +198,25 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         scroll.setWidgetResizable(True)
         container = QWidget()
         form = QFormLayout(container)
+        self.visual_controls = QWidget()
+        visual = QFormLayout(self.visual_controls)
+        visual.setContentsMargins(0, 0, 0, 0)
+        image_row = QHBoxLayout()
+        self.home_image = self.field("editorial", "home_image", QLineEdit())
+        self.home_image.setReadOnly(True)
+        self.home_image.setPlaceholderText("Frontispice fourni avec Studio Aldines")
+        image_row.addWidget(self.home_image, 1)
+        image_row.addWidget(self.button("Choisir une image…", self.choose_home_image))
+        image_row.addWidget(self.button("Rétablir le frontispice", self.reset_home_image))
+        visual.addRow("Image d’accueil", image_row)
+        self.home_caption = self.field("editorial", "home_caption", QPlainTextEdit())
+        self.home_caption.setMaximumHeight(65)
+        visual.addRow("Légende de l’image", self.home_caption)
+        self.home_alt = self.field("editorial", "home_alt", QLineEdit())
+        self.home_alt.setPlaceholderText("Décrivez brièvement l’image pour les lecteurs d’écran.")
+        visual.addRow("Texte alternatif", self.home_alt)
+        self.visual_controls.setEnabled(False)
+        form.addRow(self.visual_controls)
         labels = {"id": "Identifiant", "title": "Titre", "subtitle": "Sous-titre", "author": "Auteur",
                   "editor": "Responsable scientifique", "contributors": "Contributions (une par ligne)",
                   "institution": "Institution", "laboratory": "Laboratoire", "description": "Présentation",
@@ -313,7 +339,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.resources_page = v.parentWidget()
         self.resources_page.setEnabled(False)
 
-    def markdown_path(self, filename):
+    def project_relative_path(self, filename):
         path = Path(filename).resolve()
         directory = self.project.path.parent
         return str(path.relative_to(directory) if path.is_relative_to(directory) else path)
@@ -325,7 +351,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         for filename in files:
             path = Path(filename).resolve()
             if path not in known:
-                self.resource_files.addItem(self.markdown_path(filename))
+                self.resource_files.addItem(self.project_relative_path(filename))
                 known.add(path)
                 self.changed()
 
@@ -340,7 +366,26 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier Projet et crédits", str(self.project.path.parent),
                                               "Fichiers Markdown (*.md *.markdown)")
         if path:
-            self.credits_file.setText(self.markdown_path(path))
+            self.credits_file.setText(self.project_relative_path(path))
+
+    def choose_home_image(self):
+        formats = " ".join(f"*{suffix}" for suffix in IMAGE_SUFFIXES)
+        path, _ = QFileDialog.getOpenFileName(self, "Choisir l’image d’accueil", str(self.project.path.parent),
+                                              f"Images ({formats})")
+        if not path:
+            return
+        if not self.home_image.text():
+            defaults = DEFAULTS["editorial"]
+            if self.home_caption.toPlainText() == defaults["home_caption"]:
+                self.home_caption.clear()
+            if self.home_alt.text() == defaults["home_alt"]:
+                self.home_alt.clear()
+        self.home_image.setText(self.project_relative_path(path))
+
+    def reset_home_image(self):
+        self.home_image.clear()
+        self.home_caption.setPlainText(DEFAULTS["editorial"]["home_caption"])
+        self.home_alt.setText(DEFAULTS["editorial"]["home_alt"])
 
     def refresh_recent(self):
         self.recent.clear()
@@ -402,6 +447,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.resource_files.addItems(project.data["editorial"]["resources"])
         self.credits_file.setText(project.data["editorial"]["credits"] or "")
         self.credits_controls.setEnabled(True)
+        self.visual_controls.setEnabled(True)
         self.resources_page.setEnabled(True)
         self.loading = False
         self.dirty = False
@@ -429,6 +475,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
                     value = [line.strip() for line in value.splitlines() if line.strip()]
                 elif group == "corpus" and key in ("license", "citation", "publication_date") and not value.strip():
                     value = None
+                elif group == "editorial" and key == "home_image":
+                    value = value or None
             data[group][key] = value
         data["editorial"]["resources"] = [self.resource_files.item(i).text() for i in range(self.resource_files.count())]
         data["editorial"]["credits"] = self.credits_file.text() or None
@@ -490,11 +538,13 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         if path:
             self.fields[("publication", "output")].setText(path)
 
-    def launch(self, action, done):
+    def launch(self, action, done, *, message):
         if self.worker and self.worker.isRunning():
             return
         self.stack.setEnabled(False)
         self.progress.setRange(0, 0)
+        self.statusBar().showMessage(message)
+        self.busy_indicator.show()
         self.worker = Worker(action, self)
         self.worker.progress.connect(self.update_progress)
         self.worker.result.connect(done)
@@ -507,6 +557,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.log.appendPlainText(message)
 
     def finished(self):
+        self.busy_indicator.hide()
         self.stack.setEnabled(True)
         self.progress.setRange(0, 1)
         self.progress.setValue(1)
@@ -517,7 +568,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         except ProjectError as exc:
             self.error(exc)
             return
-        self.launch(lambda progress: read_corpus(project), lambda corpus: self.show_corpus(corpus, project))
+        self.launch(lambda progress: read_corpus(project), lambda corpus: self.show_corpus(corpus, project),
+                    message="Chargement du corpus…")
 
     def show_corpus(self, corpus, project):
         self.corpus = corpus
@@ -570,7 +622,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
             return
         destination = project.path.parent / ".local" / "preview"
         self.launch(lambda progress: build(project, only=uid, output=destination, progress=progress),
-                    lambda result: self.show_result(result, uid))
+                    lambda result: self.show_result(result, uid), message="Génération de l’aperçu…")
 
     def publish(self):
         try:
@@ -579,7 +631,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
             self.error(exc)
             return
         self.log.clear()
-        self.launch(lambda progress: build(project, progress=progress), self.show_result)
+        self.launch(lambda progress: build(project, progress=progress), self.show_result,
+                    message="Génération des pages du site…")
 
     def show_result(self, result, uid=None):
         for issue in result.corpus.issues:

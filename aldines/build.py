@@ -14,7 +14,7 @@ from urllib.parse import quote
 from . import __version__
 from .augustinus import read_corpus
 from .config import ProjectError, validate
-from .editorial import EDITORIAL_ASSETS, editorial_document, home, project_credits, resources
+from .editorial import FRONTISPICE, editorial_document, home, project_credits, publication_footer, resources
 from .markdown import read_markdown
 
 MARKER = ".aldines-generated"
@@ -75,18 +75,17 @@ def page(project, meta, title, body, current="", reader=False):
 <html lang="fr" data-theme="{a['theme']}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Studio Aldines 0.1">
 <title>{esc(title)} · {esc(meta['title'])}</title>
-<link rel="stylesheet" href="{root}assets/site.css"><style>{css}</style>
+<link rel="stylesheet" href="{root}assets/site.css">
+<link rel="stylesheet" href="{root}assets/footer.css"><style>{css}</style>
 <script src="{root}assets/site.js" defer></script></head>
 <body class="{classes}" data-mode="{reading['default_mode']}" data-root="{root}" data-alignment="{a['text_align']}">
 <a class="skip" href="#main">Aller au contenu</a>
-<header class="site-header{' reading-header' if reader else ''}"><a class="brand" href="{root}"><span class="printer-mark" aria-hidden="true">A</span>
+<header class="site-header{' reading-header' if reader else ''}"><a class="brand" href="{root}">
 <span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
 <div class="header-controls"><nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
 <button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav>{toolbar}</div></header>
 {panel}<main id="main" class="{page_class}">{body}</main>
-<footer><span>{esc(meta.get('institution', ''))} · {esc(meta.get('laboratory', ''))}</span>
-<span>{esc(meta.get('status', 'Édition en cours'))} · {esc(meta.get('version', ''))}</span>
-<p>{esc(meta.get('license') or 'Licence des contenus non renseignée.')} · Réalisé avec Studio Aldines</p></footer>
+{publication_footer(meta)}
 </body></html>'''
 
 
@@ -164,6 +163,9 @@ def check_output(project, output):
     for path in [*editorial["resources"], editorial["credits"]]:
         if path and project.resolve(path).is_relative_to(output):
             raise ProjectError("Placez les fichiers Markdown hors du dossier de sortie.")
+    image = editorial["home_image"]
+    if image and project.resolve(image).is_relative_to(output):
+        raise ProjectError("Placez l’image d’accueil hors du dossier de sortie.")
     if output.exists() and (not output.is_dir() or output.is_symlink()):
         raise ProjectError("La sortie doit être un dossier ordinaire dédié à la publication.")
     if output.exists() and any(output.iterdir()) and not (output / MARKER).is_file():
@@ -222,10 +224,24 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
             write(route, editorial_document(meta, document, credits=credits))
             (stage / route / "document.xml").write_bytes(document.tei)
             (stage / route / name).write_bytes(document.source)
-            return document.title
+            return document.title, document.excerpt
 
-        write("", home(meta))
         editorial = project.data["editorial"]
+        assets = stage / "assets"
+        assets.mkdir()
+        bundled_assets = Path(__file__).parent / "assets"
+        image = FRONTISPICE
+        filename = editorial["home_image"]
+        if filename:
+            image = "accueil" + Path(filename).suffix.lower()
+            try:
+                shutil.copyfile(project.resolve(filename), assets / image)
+            except OSError as exc:
+                raise ProjectError(f"Impossible de copier l’image d’accueil {Path(filename).name} : {exc}") from exc
+        else:
+            shutil.copyfile(bundled_assets / image, assets / image)
+        write("", home(meta, image, editorial["home_caption"], editorial["home_alt"]))
+
         documents = {}
         for filename in editorial["resources"]:
             path = project.resolve(filename)
@@ -259,10 +275,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
 <p id="search-status" role="status"></p><ol id="search-results"></ol>
 <script src="../assets/search-data.js" defer></script>'''
         write("search", page(project, meta, "Recherche", search_body, "search/"))
-        assets = stage / "assets"
-        assets.mkdir()
-        for name in ("site.css", "site.js", *EDITORIAL_ASSETS):
-            shutil.copyfile(Path(__file__).parent / "assets" / name, assets / name)
+        for name in ("site.css", "site.js", "footer.css", "editorial.css"):
+            shutil.copyfile(bundled_assets / name, assets / name)
         records = [{"unit": u.label, "book": u.book, "route": u.route, "anchor": r.anchor,
                     "la": r.latin_text, "fr": r.french_text} for u in units for r in u.rows
                    if r.latin_text or r.french_text]

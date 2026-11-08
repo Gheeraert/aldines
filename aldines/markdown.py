@@ -18,6 +18,19 @@ class Document:
     body: str
     tei: bytes
     source: bytes
+    excerpt: str
+
+
+def document_excerpt(content):
+    blocks = content.xpath(".//*[self::p or self::li][not(ancestor::*[@role='doc-endnotes'])]")
+    for block in blocks:
+        parts = block.xpath(".//text()[not(ancestor::a[@role='doc-noteref'])]")
+        excerpt = " ".join("".join(parts).split())
+        if excerpt:
+            if len(excerpt) > 280:
+                excerpt = excerpt[:281].rsplit(" ", 1)[0][:280].rstrip() + "…"
+            return excerpt
+    return ""
 
 
 def read_markdown(path):
@@ -57,7 +70,7 @@ def read_markdown(path):
     if not len(publication):
         etree.SubElement(publication, f"{TEI}p").text = "Édition numérique de l’Augustinus."
 
-    fragment = convert("html5", "--id-prefix=md-", "--shift-heading-level-by=1").decode("utf-8")
+    fragment = convert("html5", "--id-prefix=md-").decode("utf-8")
     # Les seuls liens publiés sont des ancres internes et des liens HTTP(S).
     content = html.fragment_fromstring(fragment, create_parent="div")
     for element in content.iter():
@@ -77,4 +90,5 @@ def read_markdown(path):
             if not allowed:
                 del element.attrib["href"]
     return Document(name, html.tostring(content, encoding="unicode"),
-                    etree.tostring(tei, encoding="utf-8", xml_declaration=True), source)
+                    etree.tostring(tei, encoding="utf-8", xml_declaration=True), source,
+                    document_excerpt(content))

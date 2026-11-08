@@ -90,7 +90,6 @@ button:hover {
 .brand {
   display:flex;
   align-items:center;
-  gap:12px;
   text-decoration:none;
   font:28px var(--reading-font);
   color:var(--ink)
@@ -100,13 +99,6 @@ button:hover {
   font:9px/1.6 system-ui;
   letter-spacing:.19em;
   color:var(--muted)
-}
-.printer-mark {
-  font:36px Georgia;
-  line-height:1;
-  border:1px solid var(--accent);
-  color:var(--accent);
-  padding:4px 10px
 }
 .site-header nav {
   display:flex;
@@ -598,22 +590,6 @@ mark {
   color:inherit;
   text-decoration:underline dotted
 }
-footer {
-  max-width:1440px;
-  margin:auto;
-  padding:25px 42px;
-  border-top:1px solid var(--line);
-  display:flex;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  gap:10px;
-  font-size:11px;
-  color:var(--muted)
-}
-footer p {
-  width:100%;
-  margin:5px 0
-}
 @media(min-width:1550px) {
   .marginalia .note-content {
     max-width:13rem
@@ -724,9 +700,6 @@ footer p {
   }
   .unit-nav a {
     min-height:44px
-  }
-  footer {
-    padding:25px 20px
   }
 }
 /* Annotations en fin de phrase : styles du texte édité conservés. */

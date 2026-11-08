@@ -47,6 +47,7 @@ def test_complete_reading_controls_and_editor_alignment_on_edition_pages(project
         assert doc.xpath('//link[contains(@href, "editorial.css")]')
     home = html.parse(str(editorial_pages[0]))
     assert home.xpath('//a[@class="read-button"]/@href') == ['contents/']
+    assert not html.parse(str(editorial_pages[2])).xpath('//main//h1')
 
 
 def test_project_roundtrip_and_metadata_priority(project):
@@ -174,6 +175,8 @@ def test_publish_markdown_resources_and_separate_credits(project):
 title: Étude sur la grâce
 ---
 
+# Grâce et liberté
+
 ## Introduction
 
 *italique*, **gras**, [souligné]{.underline}, [site](https://example.org) et note[^a].
@@ -189,22 +192,37 @@ title: Étude sur la grâce
 """, encoding="utf-8")
     second = resource.parent / "autre" / resource.name
     second.parent.mkdir()
-    second.write_text("Autre document.", encoding="utf-8")
+    second.write_text("Autre document. " * 30, encoding="utf-8")
     credits = resource.parent / "credits.markdown"
-    credits.write_bytes("\ufeffCrédits propres au **projet**.\r\n".encode("utf-8"))
-    project.data["editorial"] = {"resources": [resource.name, str(second)], "credits": credits.name}
+    credits.write_bytes("\ufeff# Équipe\r\n\r\n## Contributions\r\n\r\nCrédits propres au **projet**.\r\n".encode("utf-8"))
+    project.data["editorial"].update(resources=[resource.name, str(second)], credits=credits.name)
+    project.data["corpus"]["license"] = "A. Exemple · CC-BY"
     project.save()
     result = build(load_project(project.path))
     assert_site_links(result.output)
+    for page_path in result.output.rglob("index.html"):
+        published = html.parse(str(page_path))
+        assert not published.xpath('//header//span[@class="printer-mark"]'), page_path
+        assert not published.xpath('//footer//nav'), page_path
+        assert published.xpath("string(//footer/p)") == "A. Exemple · CC-BY · Réalisé avec Studio Aldines", page_path
+        assert published.xpath('//footer//a[text()="Studio Aldines"]/@href') == [
+            "https://github.com/gheeraert/aldines"
+        ], page_path
     index = html.parse(str(result.output / "ressources/index.html"))
-    links = index.xpath('//section[@aria-labelledby="documents"]//li/a')
-    assert [(link.get("href"), link.text) for link in links] == [
-        ("document-etude/", "Étude sur la grâce"),
-        ("document-etude-2/", "Étude"),
-    ]
+    section = index.xpath('//main/section[@aria-labelledby="resources-title"]')[0]
+    assert section.xpath('./h2/text()') == ["Études et ressources"]
+    assert not section.xpath('.//h1 | ./section')
+    assert section.xpath('./article/h3/text()') == ["Étude sur la grâce", "Étude"]
+    assert section.xpath('./article/a/@href') == ["document-etude/", "document-etude-2/"]
+    assert [label.strip() for label in section.xpath('./article/a/text()')] == ["Lire la suite"] * 2
+    first_excerpt, second_excerpt = section.xpath('./article/p/text()')
+    assert first_excerpt == "italique, gras, souligné, site et note."
+    assert second_excerpt.startswith("Autre document.") and second_excerpt.endswith("…")
+    assert len(second_excerpt) <= 281
     route = result.output / "ressources/document-etude"
     doc = html.parse(str(route / "index.html"))
-    assert doc.xpath("string(//h1)") == "Étude sur la grâce"
+    assert doc.xpath("//h1/text()") == ["Grâce et liberté"]
+    assert doc.xpath("//h2[@id='md-introduction']/text()") == ["Introduction"]
     assert len(doc.xpath("//em[text()='italique'] | //strong[text()='gras'] | //u[text()='souligné']")) == 3
     assert doc.xpath("//ol/li[contains(., 'Premier')]") and doc.xpath("//ul/li[contains(., 'Une puce')]")
     assert doc.xpath('//a[@role="doc-noteref"]') and doc.xpath('//a[@role="doc-backlink"]')
@@ -213,12 +231,17 @@ title: Étude sur la grâce
     ns = {"tei": "http://www.tei-c.org/ns/1.0"}
     xml = etree.parse(str(route / "document.xml"))
     assert xml.xpath("string(//tei:titleStmt/tei:title)", namespaces=ns) == "Étude sur la grâce"
-    fallback = etree.parse(str(result.output / "ressources/document-etude-2/document.xml"))
+    fallback_route = result.output / "ressources/document-etude-2"
+    assert not html.parse(str(fallback_route / "index.html")).xpath("//h1")
+    fallback = etree.parse(str(fallback_route / "document.xml"))
     assert fallback.xpath("string(//tei:titleStmt/tei:title)", namespaces=ns) == "Étude"
     assert xml.xpath("//tei:note", namespaces=ns)
     assert xml.xpath("//tei:hi[@rendition='simple:underline']", namespaces=ns)
     assert xml.xpath("//tei:publicationStmt/tei:p", namespaces=ns)
-    assert "Crédits propres" in (result.output / "projet/index.html").read_text(encoding="utf-8")
+    credits_page = html.parse(str(result.output / "projet/index.html"))
+    assert credits_page.xpath("//h1/text()") == ["Équipe"]
+    assert credits_page.xpath("//h2[@id='md-contributions']/text()") == ["Contributions"]
+    assert "Crédits propres" in credits_page.xpath("string(//main)")
     assert (result.output / "projet/document.xml").is_file()
     assert (result.output / "projet" / credits.name).read_bytes() == credits.read_bytes()
     assert (route / resource.name).read_bytes() == resource.read_bytes()
@@ -282,6 +305,40 @@ def test_failures_preserve_previous_site_and_protect_other_directories(project):
             (output / "precieux.txt").write_text("conserver", encoding="utf-8")
         with pytest.raises(ProjectError):
             build(project, output=output)
+
+
+def test_home_visual_is_configurable_and_source_is_protected(project):
+    legacy = json.loads(project.path.read_text(encoding="utf-8"))
+    legacy["editorial"] = {"resources": [], "credits": None}
+    project.path.write_text(json.dumps(legacy), encoding="utf-8")
+    project = load_project(project.path)
+    build(project)
+    default = html.parse(str(project.output / "index.html"))
+    assert default.xpath('//figure/img/@src') == ["assets/frontispice-1641.webp"]
+    assert "Paris, 1641" in default.xpath('string(//figcaption)')
+
+    source = project.path.parent / "Image & accueil.WEBP"
+    shutil.copyfile(project.output / "assets/frontispice-1641.webp", source)
+    project.data["editorial"].update(home_image=source.name, home_caption="Source <BnF>\nDomaine public",
+                                     home_alt='Reproduction "ancienne"')
+    project.save()
+    build(load_project(project.path))
+    assert_site_links(project.output)
+    home_path = project.output / "index.html"
+    doc = html.parse(str(home_path))
+    assert doc.xpath('//figure/img/@src') == ["assets/accueil.webp"]
+    assert doc.xpath('//figure/img/@alt') == ['Reproduction "ancienne"']
+    assert doc.xpath('//figcaption/text()') == ["Source <BnF>", "Domaine public"]
+    copy = project.output / "assets/accueil.webp"
+    assert copy.read_bytes() == source.read_bytes()
+
+    previous = home_path.read_bytes()
+    for image, message in [(str(copy), "hors du dossier de sortie"), ("absente.webp", "Impossible de copier")]:
+        project.data["editorial"]["home_image"] = image
+        with pytest.raises(ProjectError, match=message):
+            build(project)
+        assert home_path.read_bytes() == previous
+        assert copy.read_bytes() == source.read_bytes()
 
 
 def test_empty_or_unknown_selection_is_explicit(project):

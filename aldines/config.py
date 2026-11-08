@@ -12,6 +12,7 @@ class ProjectError(ValueError):
 
 
 MARKDOWN_SUFFIXES = {".md", ".markdown"}
+IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 
 DEFAULTS = {
     "schema_version": 1,
@@ -22,7 +23,10 @@ DEFAULTS = {
                "status": "Édition en cours", "license": None, "citation": None,
                "identifiers": [], "publication_date": None, "version": "0.1"},
     "sources": {"directory": "tei/t1", "master": "tei/t1/aug-t1.xml", "selection": None},
-    "editorial": {"resources": [], "credits": None},
+    "editorial": {"resources": [], "credits": None, "home_image": None,
+                  "home_caption": "Augustinus, tome I, Paris, 1641.\nNumérisation Google Books.",
+                  "home_alt": "Frontispice gravé montrant saint Augustin brandissant un cœur enflammé, "
+                              "entouré de figures ecclésiastiques."},
     "reading": {"default_mode": "bilingual", "show_marginalia": True, "show_notes": True,
                 "show_page_numbers": True, "show_column_markers": True,
                 "show_uncertainties": True, "show_sentence_ids": False},
@@ -89,6 +93,12 @@ def validate(data):
         raise ProjectError("Les ressources doivent être une liste de fichiers Markdown (.md ou .markdown).")
     if credits is not None and (not isinstance(credits, str) or Path(credits).suffix.lower() not in MARKDOWN_SUFFIXES):
         raise ProjectError("Projet et crédits : choisir un seul fichier Markdown (.md ou .markdown).")
+    image = editorial.get("home_image")
+    if image is not None and (not isinstance(image, str) or Path(image).suffix.lower() not in IMAGE_SUFFIXES):
+        raise ProjectError("Visuel d’accueil : choisir une image JPEG, PNG ou WebP.")
+    for key in ("home_caption", "home_alt"):
+        if not isinstance(editorial.get(key), str):
+            raise ProjectError(f"editorial.{key} doit être un texte.")
     for key in DEFAULTS["reading"]:
         if key != "default_mode" and type(data["reading"].get(key)) is not bool:
             raise ProjectError(f"reading.{key} doit être true ou false.")
