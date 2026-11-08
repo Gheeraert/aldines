@@ -240,7 +240,7 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
                 raise ProjectError(f"Impossible de copier l’image d’accueil {Path(filename).name} : {exc}") from exc
         else:
             shutil.copyfile(bundled_assets / image, assets / image)
-        write("", home(meta, image, editorial["home_caption"], editorial["home_alt"]))
+        write("", home(meta, image, editorial))
 
         documents = {}
         for filename in editorial["resources"]:

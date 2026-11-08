@@ -22,6 +22,11 @@ XID = "{http://www.w3.org/XML/1998/namespace}id"
 LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 KNOWN = set("text body div p s head trailer note quote title foreign hi milestone pb cb fw lb "
             "sic corr unclear gap choice abbr expan lg l ref seg name num date emph supplied del add".split())
+TOME2_BOOKS = {
+    ("lp", None): 1, ("ni", None): 2,
+    ("nl", 1): 3, ("nl", 2): 4, ("nl", 3): 5, ("nl", 4): 6,
+    ("np", 1): 7, ("np", 2): 8, ("np", 3): 9,
+}
 
 
 def tag(e):
@@ -62,6 +67,21 @@ def metadata(root):
             "editor": editor, "contributors": contributors,
             "source_edition": text(".//t:sourceDesc"),
             "languages": [e.get("ident") for e in header.findall(".//t:language", NS) if e.get("ident")]}
+
+
+def unit_identity(value):
+    """Identifiants numériques de tous les tomes et parties nommées du tome II."""
+    numeric = re.search(r"t(\d+)\.l(\d+)\.([sc])(\d+)", value)
+    if numeric:
+        tome, book, kind, number = numeric.groups()
+        return int(tome), int(book), kind, int(number)
+    named = re.search(r"t2\.(lp|ni|nl|np)(?:\.l(\d+))?\.c(\d+)(?=\.|$)", value)
+    if named:
+        part, sub_book, number = named.groups()
+        book = TOME2_BOOKS.get((part, int(sub_book) if sub_book is not None else None))
+        if book is not None:
+            return 2, book, "c", int(number)
+    return None
 
 
 class Reader:
@@ -142,17 +162,15 @@ class Reader:
             self.issue("error", path, 'Aucun div type="edition".', root)
             return None
         # L’identité vient du TEI ; le nom de fichier n’est qu’un dernier recours.
-        match = re.search(r"t(\d+)\.l(\d+)\.([sc])(\d+)", ed.get(XID, ""))
-        if not match:
-            match = re.search(r"t(\d+)-l(\d+)-([sc])(\d+)", path.stem)
-        if not match:
+        identity = unit_identity(ed.get(XID, "")) or unit_identity(path.stem.replace("-", "."))
+        if identity is None:
             self.issue("error", path, "Identité Augustinus introuvable (tome/livre/section ou chapitre).", ed)
             return None
-        tome, book, kind, number = match.groups()
-        uid = f"t{int(tome)}.l{int(book):02}.{kind}{int(number):02}"
-        label = f"{'Section' if kind == 's' else 'Chapitre'} {int(number)}"
+        tome, book, kind, number = identity
+        uid = f"t{tome}.l{book:02}.{kind}{number:02}"
+        label = f"{'Section' if kind == 's' else 'Chapitre'} {number}"
         unit = Unit(uid, path, metadata(root).get("title") or label,
-                    f"t{int(tome)}/l{int(book)}/{kind}{int(number):02}/", int(tome), int(book), label,
+                    f"t{tome}/l{book}/{kind}{number:02}/", tome, book, label,
                     metadata=metadata(root))
         for body in (ed, fr):
             if body is None:

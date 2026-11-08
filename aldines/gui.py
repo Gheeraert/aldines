@@ -8,7 +8,7 @@ from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QFormLayout, QStackedWidget, QListWidget, QLabel, QPushButton, QLineEdit,
     QPlainTextEdit, QComboBox, QCheckBox, QSpinBox, QDoubleSpinBox, QFileDialog,
-    QMessageBox, QTreeWidget, QTreeWidgetItem, QScrollArea, QProgressBar)
+    QMessageBox, QTreeWidget, QTreeWidgetItem, QScrollArea, QProgressBar, QGroupBox)
 
 from .augustinus import read_corpus
 from .build import build
@@ -198,9 +198,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         scroll.setWidgetResizable(True)
         container = QWidget()
         form = QFormLayout(container)
-        self.visual_controls = QWidget()
-        visual = QFormLayout(self.visual_controls)
-        visual.setContentsMargins(0, 0, 0, 0)
+        self.home_controls = QGroupBox("Page d’accueil")
+        home_form = QFormLayout(self.home_controls)
         image_row = QHBoxLayout()
         self.home_image = self.field("editorial", "home_image", QLineEdit())
         self.home_image.setReadOnly(True)
@@ -208,15 +207,21 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         image_row.addWidget(self.home_image, 1)
         image_row.addWidget(self.button("Choisir une image…", self.choose_home_image))
         image_row.addWidget(self.button("Rétablir le frontispice", self.reset_home_image))
-        visual.addRow("Image d’accueil", image_row)
+        home_form.addRow("Image d’accueil", image_row)
         self.home_caption = self.field("editorial", "home_caption", QPlainTextEdit())
         self.home_caption.setMaximumHeight(65)
-        visual.addRow("Légende de l’image", self.home_caption)
+        home_form.addRow("Légende de l’image", self.home_caption)
         self.home_alt = self.field("editorial", "home_alt", QLineEdit())
         self.home_alt.setPlaceholderText("Décrivez brièvement l’image pour les lecteurs d’écran.")
-        visual.addRow("Texte alternatif", self.home_alt)
-        self.visual_controls.setEnabled(False)
-        form.addRow(self.visual_controls)
+        home_form.addRow("Texte alternatif", self.home_alt)
+        for key, label in (("home_intro", "Texte d’introduction"),
+                           ("home_edition", "Texte sous « L’édition »"),
+                           ("home_resources", "Texte sous « Études et ressources »")):
+            text = self.field("editorial", key, QPlainTextEdit())
+            text.setMaximumHeight(65)
+            home_form.addRow(label, text)
+        self.home_controls.setEnabled(False)
+        form.addRow(self.home_controls)
         labels = {"id": "Identifiant", "title": "Titre", "subtitle": "Sous-titre", "author": "Auteur",
                   "editor": "Responsable scientifique", "contributors": "Contributions (une par ligne)",
                   "institution": "Institution", "laboratory": "Laboratoire", "description": "Présentation",
@@ -447,7 +452,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         self.resource_files.addItems(project.data["editorial"]["resources"])
         self.credits_file.setText(project.data["editorial"]["credits"] or "")
         self.credits_controls.setEnabled(True)
-        self.visual_controls.setEnabled(True)
+        self.home_controls.setEnabled(True)
         self.resources_page.setEnabled(True)
         self.loading = False
         self.dirty = False

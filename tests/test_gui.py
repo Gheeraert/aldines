@@ -52,7 +52,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.project is window.corpus is window.worker is None
     assert not window.save_button.isEnabled()
     assert not window.credits_controls.isEnabled()
-    assert not window.visual_controls.isEnabled()
+    assert not window.home_controls.isEnabled()
     assert window.busy_indicator.isHidden()
     assert window.navigation.item(3).text() == "04   Ressources"
     assert window.stack.widget(3) is window.resources_page
@@ -67,10 +67,14 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.busy_indicator.isHidden()
     assert not errors
     assert window.save_button.isEnabled()
-    assert window.visual_controls.isEnabled()
+    assert window.home_controls.isEnabled()
     assert len(window.leaves()) == 2
     window.fields[("appearance", "font_size")].setValue(22)
     window.fields[("appearance", "text_align")].setCurrentIndex(1)
+    home_texts = {"home_intro": "Introduction personnalisée", "home_edition": "Une autre description",
+                  "home_resources": ""}
+    for key, text in home_texts.items():
+        window.fields[("editorial", key)].setPlainText(text)
     window.leaves()[0].setCheckState(0, Qt.Unchecked)
     assert window.dirty
     QTest.mouseClick(window.save_button, Qt.LeftButton)
@@ -80,6 +84,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert saved.data["sources"]["selection"] == ["t1.l01.s01"]
     assert saved.data["appearance"]["font_size"] == 22
     assert saved.data["appearance"]["text_align"] == "justify"
+    assert {key: saved.data["editorial"][key] for key in home_texts} == home_texts
     window.fields[("appearance", "font_size")].setValue(23)
     assert not window.save_feedback.text()
     window.fields[("appearance", "font_size")].setValue(22)
@@ -117,7 +122,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     image = tmp_path / "accueil.webp"
     image.write_bytes((project.output / "assets/frontispice-1641.webp").read_bytes())
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *args: (str(image), ""))
-    choose_image = next(button for button in window.visual_controls.findChildren(QPushButton)
+    choose_image = next(button for button in window.home_controls.findChildren(QPushButton)
                         if button.text() == "Choisir une image…")
     QTest.mouseClick(choose_image, Qt.LeftButton)
     assert not window.home_caption.toPlainText() and not window.home_alt.text()
@@ -129,6 +134,8 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.home_image.text() == image.name
     assert window.home_caption.toPlainText() == "Légende choisie"
     assert window.home_alt.text() == "Description de l’image"
+    for key, text in home_texts.items():
+        assert window.fields[("editorial", key)].toPlainText() == text
     window.show()
     app.processEvents()
     window.grab().save(str(tmp_path / "qt-project.png"))

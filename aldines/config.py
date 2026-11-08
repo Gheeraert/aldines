@@ -26,7 +26,11 @@ DEFAULTS = {
     "editorial": {"resources": [], "credits": None, "home_image": None,
                   "home_caption": "Augustinus, tome I, Paris, 1641.\nNumérisation Google Books.",
                   "home_alt": "Frontispice gravé montrant saint Augustin brandissant un cœur enflammé, "
-                              "entouré de figures ecclésiastiques."},
+                              "entouré de figures ecclésiastiques.",
+                  "home_intro": "Le traité majeur de Cornelius Jansenius (1585–1638) sur la nature humaine, "
+                                "la grâce et la controverse pélagienne, dans une édition numérique.",
+                  "home_edition": "Le texte latin de l’Augustinus, établi et présenté dans une édition numérique.",
+                  "home_resources": "Présentation de l’œuvre, articles, bibliographie et documents complémentaires."},
     "reading": {"default_mode": "bilingual", "show_marginalia": True, "show_notes": True,
                 "show_page_numbers": True, "show_column_markers": True,
                 "show_uncertainties": True, "show_sentence_ids": False},
@@ -96,7 +100,7 @@ def validate(data):
     image = editorial.get("home_image")
     if image is not None and (not isinstance(image, str) or Path(image).suffix.lower() not in IMAGE_SUFFIXES):
         raise ProjectError("Visuel d’accueil : choisir une image JPEG, PNG ou WebP.")
-    for key in ("home_caption", "home_alt"):
+    for key in ("home_caption", "home_alt", "home_intro", "home_edition", "home_resources"):
         if not isinstance(editorial.get(key), str):
             raise ProjectError(f"editorial.{key} doit être un texte.")
     for key in DEFAULTS["reading"]:

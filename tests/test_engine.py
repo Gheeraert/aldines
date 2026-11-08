@@ -292,6 +292,48 @@ def test_cross_unit_refs_and_unpublished_refs(project):
     assert doc.xpath('//a[text()="absent"]/@aria-disabled') == ["true"]
 
 
+def test_publish_nested_masters_for_three_volumes(project):
+    def master(path, names):
+        includes = "".join(f'<xi:include href="{name}"/>' for name in names)
+        path.write_text(f'''<teiCorpus xmlns="http://www.tei-c.org/ns/1.0"
+                         xmlns:xi="http://www.w3.org/2001/XInclude">{includes}</teiCorpus>''', encoding="utf-8")
+
+    t2 = project.directory / "t2"
+    t2.mkdir()
+    parts = ["lp", "ni", "nl.l01", "nl.l02", "nl.l03", "nl.l04", "np.l01", "np.l02", "np.l03"]
+    files = []
+    for part in parts:
+        uid = f"t2.{part}.c01"
+        filename = f"aug-{uid.replace('.', '-')}.xml"
+        content = tei().replace("t1.l01.s01", uid)
+        if part == "lp":
+            filename = "aug-t2-l09-c99.xml"  # L’identifiant TEI prime sur le nom.
+        elif part == "np.l03":
+            content = content.replace(f'xml:id="{uid}.la"', 'xml:id="edition-locale"')
+        (t2 / filename).write_text(content, encoding="utf-8")
+        files.append(filename)
+    master(t2 / "aug-t2.xml", files)
+    t3 = project.directory / "t3"
+    t3.mkdir()
+    (t3 / "partiel.xml").write_text(tei(french=False).replace("t1.l01.s01", "t3.l01.c01"), encoding="utf-8")
+    master(t3 / "aug-t3.xml", ["partiel.xml", "a-venir.xml"])
+    master(project.directory / "aug.xml", ["master.xml", "t2/aug-t2.xml", "t3/aug-t3.xml"])
+    project.data["sources"]["master"] = "tei/aug.xml"
+
+    result = build(project)
+    assert_site_links(result.output)
+    units = result.corpus.units
+    assert [unit.route for unit in units] == ["t1/l1/s02/", "t1/l1/s01/",
+                                               *(f"t2/l{book}/c01/" for book in range(1, 10)),
+                                               "t3/l1/c01/"]
+    assert any(issue.file == "a-venir.xml" and issue.level == "warning" for issue in result.corpus.issues)
+    assert units[-1].translated == 0
+    t2_page = html.parse(str(result.output / "t2/l1/c01/index.html"))
+    assert t2_page.xpath('//*[@id="t2.lp.c01.la.s1"]')
+    t3_page = html.parse(str(result.output / "t3/l1/c01/index.html"))
+    assert t3_page.xpath('//em[@class="missing"]/text()') == ["Traduction à venir"] * 3
+
+
 def test_failures_preserve_previous_site_and_protect_other_directories(project):
     build(project)
     previous = (project.output / "index.html").read_bytes()
@@ -316,11 +358,15 @@ def test_home_visual_is_configurable_and_source_is_protected(project):
     default = html.parse(str(project.output / "index.html"))
     assert default.xpath('//figure/img/@src') == ["assets/frontispice-1641.webp"]
     assert "Paris, 1641" in default.xpath('string(//figcaption)')
+    assert default.xpath('string(//p[@class="summary"])').startswith("Le traité majeur")
+    assert default.xpath('string(//section[@aria-labelledby="edition-title"]/p)').startswith("Le texte latin")
+    assert default.xpath('string(//section[@aria-labelledby="resources-title"]/p)').startswith("Présentation de l’œuvre")
 
     source = project.path.parent / "Image & accueil.WEBP"
     shutil.copyfile(project.output / "assets/frontispice-1641.webp", source)
     project.data["editorial"].update(home_image=source.name, home_caption="Source <BnF>\nDomaine public",
-                                     home_alt='Reproduction "ancienne"')
+                                     home_alt='Reproduction "ancienne"', home_intro="Un texte <latin>\nEt sa traduction",
+                                     home_edition=" ", home_resources="Articles & bibliographie")
     project.save()
     build(load_project(project.path))
     assert_site_links(project.output)
@@ -329,6 +375,11 @@ def test_home_visual_is_configurable_and_source_is_protected(project):
     assert doc.xpath('//figure/img/@src') == ["assets/accueil.webp"]
     assert doc.xpath('//figure/img/@alt') == ['Reproduction "ancienne"']
     assert doc.xpath('//figcaption/text()') == ["Source <BnF>", "Domaine public"]
+    assert doc.xpath('//p[@class="summary"]/text()') == ["Un texte <latin>", "Et sa traduction"]
+    assert doc.xpath('//p[@class="summary"]/br')
+    assert not doc.xpath('//section[@aria-labelledby="edition-title"]/p')
+    assert doc.xpath('//section[@aria-labelledby="edition-title"]/a/@href') == ["contents/"]
+    assert doc.xpath('//section[@aria-labelledby="resources-title"]/p/text()') == ["Articles & bibliographie"]
     copy = project.output / "assets/accueil.webp"
     assert copy.read_bytes() == source.read_bytes()
 

@@ -33,6 +33,8 @@ Un astérisque dans le titre indique les réglages non enregistrés. Le message 
 
 Dans **Projet**, utilisez **Image d’accueil → Choisir une image…** pour sélectionner un fichier JPEG, PNG ou WebP. Renseignez la légende et le texte alternatif, enregistrez, puis régénérez le site. L’image source doit rester hors du dossier de sortie. Studio Aldines en publie une copie dans `assets/`. Le bouton **Rétablir le frontispice** rétablit également sa légende et sa description d’origine.
 
+Dans le même groupe **Page d’accueil**, les trois champs de texte règlent l’introduction et les descriptions sous **L’édition** et **Études et ressources**. Un champ laissé vide masque le paragraphe correspondant.
+
 ## Publier des ressources et des crédits
 
 Dans **Ressources**, juste après **Présentation**, ajoutez les fichiers `.md` ou `.markdown` à publier. Dans **Projet**, utilisez **Projet et crédits → Choisir le Markdown…** pour sélectionner le fichier unique de cette page. Sans ce fichier, la page reprend les métadonnées du projet. Enregistrez les réglages dans **Projet**, puis générez le site.
@@ -61,6 +63,8 @@ Consulter ensuite `http://127.0.0.1:8000/`. L’aperçu HTTP est recommandé plu
 ## Ajouter du texte et publier
 
 Ajouter un fichier TEI conforme aux conventions de l’Augustinus, puis son `xi:include` à la place voulue dans le maître, avec votre outil de travail habituel. Recharger le corpus et régénérer. Aldines n’ajoute pas lui-même d’inclusions et ne corrige pas les sources.
+
+Pour publier plusieurs tomes ensemble, choisissez `tei/` comme **Dossier TEI** et `tei/aug.xml` comme **Fichier maître**. Ce maître inclut les maîtres des tomes dans l’ordre de lecture. Le tome II accepte les chapitres `t2.lp.cNN`, `t2.ni.cNN`, `t2.nl.l01.cNN` à `t2.nl.l04.cNN` et `t2.np.l01.cNN` à `t2.np.l03.cNN`, rangés dans les livres 1 à 9. Les identifiants numériques `tN.lNN.cNN` et `tN.lNN.sNN` fonctionnent aussi pour les tomes suivants. Les unités manquantes sont signalées et ignorées, et les phrases latines peuvent paraître avant leur traduction. Si vous aviez limité la sélection, cochez les nouvelles unités dans **Corpus** avant de régénérer.
 
 Le site contient les pages HTML, CSS, JavaScript et une copie exacte du fichier TEI original de chaque unité publiée, placée à côté de sa page HTML. Le bouton discret « Télécharger le TEI », en haut de chaque page d’édition, télécharge ce fichier sous son nom d’origine. Seules les unités sélectionnées sont copiées, y compris lors d’un aperçu ; les sources restent intactes. Après validation scientifique et autorisation de diffusion, copier **le contenu du dossier de publication** sur un hébergement statique. Les liens relatifs fonctionnent à la racine et sous `/augustinus/` ou un autre répertoire ; renseigner `publication.base_path` pour consigner ce montage. `.nojekyll` est fourni pour un éventuel hébergement GitHub Pages. Aucun workflow de déploiement n’est installé.
 

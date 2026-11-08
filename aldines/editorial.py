@@ -42,32 +42,36 @@ def editorial_page(meta, title, body, *, root="./", current="accueil"):
 </body></html>'''
 
 
-def home(meta, image, caption, alt):
-    caption = esc(caption).replace("\n", "<br>")
+def home(meta, image, editorial):
+    def paragraph(key, attributes=""):
+        text = esc(editorial[key].strip()).replace("\n", "<br>")
+        return f"<p{attributes}>{text}</p>" if text else ""
+
+    caption = esc(editorial["home_caption"]).replace("\n", "<br>")
+    alt = esc(editorial["home_alt"])
     figcaption = f"<figcaption>{caption}</figcaption>" if caption else ""
     engraving = ' class="engraving" width="911" height="1416"' if image == FRONTISPICE else ""
     return editorial_page(meta, "Accueil", f'''<section class="intro" aria-labelledby="titre">
 <div class="intro-copy">
 <h1 id="titre" lang="la">Augustinus</h1>
 <p class="author">Cornelius Jansenius</p>
-<p class="subtitle">Édition numérique</p>
-<p class="summary">Le traité majeur de Cornelius Jansenius (1585–1638) sur la nature humaine, la grâce et la controverse pélagienne, dans une édition numérique.</p>
+{paragraph('home_intro', ' class="summary"')}
 <a class="read-button" href="contents/">Lire l’édition <span aria-hidden="true">→</span></a>
 </div>
 <figure class="frontispiece">
-<img src="assets/{esc(image)}"{engraving} alt="{esc(alt)}">
+<img src="assets/{esc(image)}"{engraving} alt="{alt}">
 {figcaption}
 </figure>
 </section>
 <div class="entry-points">
 <section aria-labelledby="edition-title">
 <h2 id="edition-title">L’édition</h2>
-<p>Le texte latin de l’<cite lang="la">Augustinus</cite>, établi et présenté dans une édition numérique.</p>
+{paragraph('home_edition')}
 <a href="contents/">Lire l’édition <span aria-hidden="true">→</span></a>
 </section>
 <section aria-labelledby="resources-title">
 <h2 id="resources-title">Études et ressources</h2>
-<p>Présentation de l’œuvre, articles, bibliographie et documents complémentaires.</p>
+{paragraph('home_resources')}
 <a href="ressources/">Accéder aux ressources <span aria-hidden="true">→</span></a>
 </section>
 </div>''')
