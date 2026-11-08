@@ -344,6 +344,20 @@ def test_scan_link_rejects_non_web_urls(project):
         build(project)
 
 
+def test_scientific_notice_renders_tei_web_references(project):
+    source = project.directory / "a.xml"
+    source.write_text(tei().replace("Imprimé de test", '''Édition &lt;ancienne&gt; (
+        <ref target="https://example.org/scan.pdf?id=12&amp;view=full#page=35">Voir la numérisation</ref> ;
+        fichier <ref>scan.pdf</ref> ; <ref target="javascript:alert(1)">référence écartée</ref>).'''),
+        encoding="utf-8")
+    result = build(project)
+    page = html.parse(str(result.output / "t1/l1/s01/index.html"))
+    notice = page.xpath('//details[@class="source-metadata"]/p[2]')[0]
+    assert notice.xpath('./a/@href') == ["https://example.org/scan.pdf?id=12&view=full#page=35"]
+    assert notice.xpath('./a/text()') == ["Voir la numérisation"]
+    assert notice.text_content() == "Édition <ancienne> ( Voir la numérisation ; fichier scan.pdf ; référence écartée)."
+
+
 def test_cross_unit_refs_and_unpublished_refs(project):
     f = project.directory / "a.xml"
     f.write_text(tei(extra='<ref target="#t1.l01.s02.la.s1">autre unité</ref><ref target="#absent">absent</ref>'), encoding="utf-8")

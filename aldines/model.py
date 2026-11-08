@@ -40,6 +40,7 @@ class Unit:
     sentences: int = 0
     metadata: dict = field(default_factory=dict)
     aliases: dict[str, str] = field(default_factory=dict)
+    source_notice_html: str = ""
 
 
 @dataclass

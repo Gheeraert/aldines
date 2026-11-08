@@ -40,24 +40,36 @@ def tag(e):
     return ET.QName(e).localname if isinstance(e.tag, str) else ""
 
 
-def content_text(e):
-    """Texte pour la recherche : sans notes ni repères, sans double expansion."""
-    if tag(e) in ("note", "pb", "cb", "milestone", "fw"):
+def content_text(e, *, link_refs=False):
+    """Texte sans notes ni repères ; la notice peut conserver les liens TEI."""
+    name = tag(e)
+    if name in ("note", "pb", "cb", "milestone", "fw"):
         return ""
-    if tag(e) == "gap":
+    if name == "gap":
         return "[…]"
-    if tag(e) == "choice":
+    if name == "choice":
         chosen = next((c for c in e if tag(c) in ("abbr", "sic", "orig")), None)
         if chosen is not None:
-            return content_text(chosen)
-    result = e.text or ""
+            return content_text(chosen, link_refs=link_refs)
+    if link_refs and e.tag == T + "ref":
+        target = e.get("target", "").strip()
+        try:
+            url = urlsplit(target)
+            url.port  # Valide le port lorsqu’il est fourni.
+        except ValueError:
+            url = None
+        if (url and url.scheme in ("http", "https") and url.hostname
+                and not re.search(r"[\s\\\x00-\x1f\x7f]", target)):
+            return f'<a href="{esc(target)}" rel="noreferrer">{esc(clean(e) or target)}</a>'
+    literal = esc if link_refs else str
+    result = literal(e.text or "")
     for ch in e:
-        result += content_text(ch) + (ch.tail or "")
+        result += content_text(ch, link_refs=link_refs) + literal(ch.tail or "")
     return result
 
 
-def clean(e):
-    return " ".join(content_text(e).split()) if e is not None else ""
+def clean(e, *, link_refs=False):
+    return " ".join(content_text(e, link_refs=link_refs).split()) if e is not None else ""
 
 
 def metadata(root):
@@ -180,9 +192,11 @@ class Reader:
         uid = f"t{tome}.l{book:02}.{kind}{number:02}"
         label = f"{'Section' if kind == 's' else 'Chapitre'} {number}"
         book_label = self.project.data.get("books", {}).get(f"t{tome}.{part}", default_book_label).strip()
-        unit = Unit(uid, path, metadata(root).get("title") or label,
+        meta = metadata(root)
+        source = root.find("./t:teiHeader//t:sourceDesc", NS)
+        unit = Unit(uid, path, meta.get("title") or label,
                     f"t{tome}/l{book}/{kind}{number:02}/", tome, book, label,
-                    book_label=book_label, metadata=metadata(root))
+                    book_label=book_label, metadata=meta, source_notice_html=clean(source, link_refs=True))
         for body in (ed, fr):
             if body is None:
                 continue

@@ -155,7 +155,7 @@ def reader_page(unit, units, index, global_anchors):
 <article class="reader" aria-label="Texte et traduction">{rendered}</article>
 <nav class="unit-nav" aria-label="Suite de la lecture">{nav}</nav>
 <details class="source-metadata"><summary>Notice scientifique du fichier TEI</summary><p>{esc(unit.title)}</p>
-<p>{esc(unit.metadata.get('source_edition', ''))}</p><ul>{''.join('<li>' + esc(c) + '</li>' for c in unit.metadata.get('contributors', []))}</ul></details>'''
+<p>{unit.source_notice_html}</p><ul>{''.join('<li>' + esc(c) + '</li>' for c in unit.metadata.get('contributors', []))}</ul></details>'''
 
 
 def check_output(project, output):
