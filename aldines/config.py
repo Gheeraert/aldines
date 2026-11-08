@@ -20,7 +20,7 @@ DEFAULTS = {
     "corpus": {"id": "augustinus", "title": "", "subtitle": "Édition numérique bilingue",
                "author": "", "editor": "", "contributors": [],
                "institution": "Université de Rouen Normandie", "laboratory": "CEREdI",
-               "description": "", "source_edition": "", "languages": ["la", "fr"],
+               "description": "", "source_edition": "", "source_edition_url": "", "languages": ["la", "fr"],
                "status": "Édition en cours", "license": None, "citation": None,
                "identifiers": [], "publication_date": None, "version": "0.1"},
     "sources": {"directory": "tei/t1", "master": "tei/t1/aug-t1.xml", "selection": None},
@@ -97,6 +97,16 @@ def validate(data):
                 raise ProjectError(f"corpus.{key} doit être une liste de textes.")
         elif value is not None and not isinstance(value, str):
             raise ProjectError(f"corpus.{key} doit être un texte ou null.")
+    scan_url = (data["corpus"].get("source_edition_url") or "").strip()
+    if scan_url:
+        try:
+            url = urlsplit(scan_url)
+            url.port  # Déclenche une erreur si le port fourni est invalide.
+        except ValueError:
+            url = None
+        if (url is None or url.scheme not in ("http", "https") or not url.hostname
+                or re.search(r"[\s\\\x00-\x1f\x7f]", scan_url)):
+            raise ProjectError("Lien vers la numérisation : saisir une URL complète commençant par http:// ou https://.")
     selection = data["sources"].get("selection")
     if selection is not None and (not isinstance(selection, list) or any(not isinstance(v, str) for v in selection)):
         raise ProjectError("sources.selection doit être null (tout) ou une liste d’identifiants.")

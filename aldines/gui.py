@@ -225,13 +225,16 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         labels = {"id": "Identifiant", "title": "Titre", "subtitle": "Sous-titre", "author": "Auteur",
                   "editor": "Responsable scientifique", "contributors": "Contributions (une par ligne)",
                   "institution": "Institution", "laboratory": "Laboratoire", "description": "Présentation",
-                  "source_edition": "Édition de référence", "languages": "Langues (une par ligne)",
+                  "source_edition": "Édition de référence", "source_edition_url": "Lien vers la numérisation",
+                  "languages": "Langues (une par ligne)",
                   "status": "État d’avancement", "publication_date": "Date de publication", "version": "Version",
                   "license": "Licence des contenus", "citation": "Formule de citation", "identifiers": "Identifiants pérennes (un par ligne)"}
         for key in DEFAULTS["corpus"]:
             widget = QPlainTextEdit() if key in ("contributors", "description", "languages", "identifiers", "citation", "source_edition") else QLineEdit()
             if isinstance(widget, QPlainTextEdit):
                 widget.setMaximumHeight(80)
+            if key == "source_edition_url":
+                widget.setPlaceholderText("URL du PDF ou de la visionneuse (facultatif)")
             form.addRow(labels[key], self.field("corpus", key, widget))
         for key, label in [("directory", "Dossier TEI"), ("master", "Fichier maître")]:
             row = QHBoxLayout()

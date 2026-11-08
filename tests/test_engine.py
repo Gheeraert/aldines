@@ -316,6 +316,8 @@ def test_static_build_navigation_subdirectory_and_no_source_writes(project):
     assert not (result.output / "sitemap.xml").exists()
     home = html.parse(str(result.output / "index.html"))
     assert not home.xpath('//head/link[@rel="canonical"] | //head/meta[@name="robots"]')
+    contents = html.parse(str(result.output / "contents/index.html"))
+    assert not contents.xpath('//a[text()="Consulter l’édition numérisée"]')
     page = html.parse(str(result.output / "t1/l1/s01/index.html"))
     assert page.xpath('//a[@rel="prev"]/@href') == ["../s02/", "../s02/"]
     assert not page.xpath('//a[@rel="next"]')
@@ -334,6 +336,12 @@ def test_static_build_navigation_subdirectory_and_no_source_writes(project):
     assert build(project).count == 1
     assert not (result.output / "t1/l1/s02").exists()
     assert len(list(result.output.rglob("*.xml"))) == 1
+
+
+def test_scan_link_rejects_non_web_urls(project):
+    project.data["corpus"]["source_edition_url"] = "javascript:alert(1)"
+    with pytest.raises(ProjectError, match="Lien vers la numérisation"):
+        build(project)
 
 
 def test_cross_unit_refs_and_unpublished_refs(project):

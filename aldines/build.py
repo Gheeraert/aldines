@@ -91,15 +91,17 @@ def page(project, meta, title, body, current="", reader=False, *, seo_tags=""):
 </body></html>'''
 
 
-def contents(units):
+def contents(units, scan_url=""):
     result = ['<p class="eyebrow">EXPLORER LE CORPUS</p><h1>Table des matières</h1>',
               '<p>Choisissez un tome, un livre, puis une section ou un chapitre disponible.</p>',
               '''<form id="corpus-navigator" hidden><div class="corpus-selectors">
 <label>Tome<select id="nav-tome"></select></label>
 <label>Livre<select id="nav-book"></select></label>
 <label>Section / chapitre<select id="nav-unit"></select></label></div>
-<p id="nav-summary" role="status"></p><a id="nav-open" class="primary">Ouvrir le texte →</a></form>
-<details class="contents-fallback" open><summary>Liste complète des unités disponibles</summary>''']
+<p id="nav-summary" role="status"></p><a id="nav-open" class="primary">Ouvrir le texte →</a></form>''']
+    if scan_url:
+        result.append(f'<p><a href="{esc(scan_url)}">Consulter l’édition numérisée</a></p>')
+    result.append('<details class="contents-fallback" open><summary>Liste complète des unités disponibles</summary>')
     last_tome = last_book = None
     opened = False
     for u in units:
@@ -274,7 +276,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
         else:
             write("projet", project_credits, meta,
                   description=meta.get("description") or f"Projet et crédits de l’édition numérique de {meta['title']}.")
-        write("contents/", page, project, meta, "Table des matières", contents(units), "contents/",
+        scan_url = (project.data["corpus"].get("source_edition_url") or "").strip()
+        write("contents/", page, project, meta, "Table des matières", contents(units, scan_url), "contents/",
               description=f"Tomes, livres, sections et chapitres de l’édition numérique de {meta['title']}.")
         anchors = {}
         for u in units:

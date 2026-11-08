@@ -10,6 +10,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QPushButton
 from PySide6.QtGui import QFontDatabase, QFont
 from pathlib import Path
+from lxml import html
 
 from aldines.config import load_project
 from aldines.__main__ import main
@@ -72,6 +73,9 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     window.fields[("appearance", "font_size")].setValue(22)
     window.fields[("appearance", "text_align")].setCurrentIndex(1)
     window.fields[("publication", "origin")].setText("https://example.org")
+    scan_url = "https://example.org/edition.pdf?id=1641&view=full#page=12"
+    scan_field = window.fields[("corpus", "source_edition_url")]
+    scan_field.setText(scan_url)
     home_texts = {"home_intro": "Introduction personnalisée", "home_edition": "Une autre description",
                   "home_resources": ""}
     for key, text in home_texts.items():
@@ -86,6 +90,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert saved.data["appearance"]["font_size"] == 22
     assert saved.data["appearance"]["text_align"] == "justify"
     assert saved.data["publication"]["origin"] == "https://example.org"
+    assert saved.data["corpus"]["source_edition_url"] == scan_url
     assert {key: saved.data["editorial"][key] for key in home_texts} == home_texts
     window.fields[("appearance", "font_size")].setValue(23)
     assert not window.save_feedback.text()
@@ -107,6 +112,9 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert not errors
     assert (project.output / "t1/l1/s01/index.html").exists()
     assert not (project.output / "t1/l1/s02/index.html").exists()
+    contents = html.parse(str(project.output / "contents/index.html"))
+    assert contents.xpath('//form[@id="corpus-navigator"]/following-sibling::*[1]/a'
+                          '[text()="Consulter l’édition numérisée"]/@href') == [scan_url]
     files = [str(tmp_path / name) for name in ("un.md", "deux.md")]
     monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *args: (files, ""))
     window.add_resources()
@@ -136,6 +144,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.home_image.text() == image.name
     assert window.home_caption.toPlainText() == "Légende choisie"
     assert window.home_alt.text() == "Description de l’image"
+    assert scan_field.text() == scan_url
     for key, text in home_texts.items():
         assert window.fields[("editorial", key)].toPlainText() == text
     window.show()
