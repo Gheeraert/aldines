@@ -48,6 +48,8 @@ def test_complete_reading_controls_and_editor_alignment_on_edition_pages(project
     home = html.parse(str(editorial_pages[0]))
     assert home.xpath('//a[@class="read-button"]/@href') == ['contents/']
     assert not html.parse(str(editorial_pages[2])).xpath('//main//h1')
+    intro = home.xpath('//section[@class="intro"]//div[@class="intro-copy"]')[0]
+    assert intro.xpath('./p[@class="author"]/following-sibling::*[1][self::h1[@id="titre"]]')
 
 
 def test_project_roundtrip_and_metadata_priority(project):
@@ -63,6 +65,9 @@ def test_project_roundtrip_and_metadata_priority(project):
 @pytest.mark.parametrize("group,key,value", [("appearance", "font_size", "grand"),
     ("appearance", "font_size", True), ("reading", "show_notes", "false"),
     ("reading", "default_mode", "invalid"), ("publication", "base_path", "/../"),
+    ("publication", "origin", "https://example.org/augustinus/"),
+    ("publication", "origin", "https://example.org:99999"),
+    ("publication", "origin", "https://example.org#fragment"),
     ("corpus", "languages", "la"), ("sources", "selection", "tout"),
     ("appearance", "text_align", "invalid")])
 def test_clear_json_errors(project, group, key, value):
@@ -197,6 +202,7 @@ title: Étude sur la grâce
     credits.write_bytes("\ufeff# Équipe\r\n\r\n## Contributions\r\n\r\nCrédits propres au **projet**.\r\n".encode("utf-8"))
     project.data["editorial"].update(resources=[resource.name, str(second)], credits=credits.name)
     project.data["corpus"]["license"] = "A. Exemple · CC-BY"
+    project.data["publication"]["origin"] = "https://example.org"
     project.save()
     result = build(load_project(project.path))
     assert_site_links(result.output)
@@ -221,6 +227,10 @@ title: Étude sur la grâce
     assert len(second_excerpt) <= 281
     route = result.output / "ressources/document-etude"
     doc = html.parse(str(route / "index.html"))
+    resource_url = "https://example.org/ressources/document-etude/"
+    assert doc.xpath('//head/link[@rel="canonical"]/@href') == [resource_url]
+    assert doc.xpath('//head/meta[@name="description"]/@content') == [first_excerpt]
+    assert resource_url in sitemap_locations(result.output)
     assert doc.xpath("//h1/text()") == ["Grâce et liberté"]
     assert doc.xpath("//h2[@id='md-introduction']/text()") == ["Introduction"]
     assert len(doc.xpath("//em[text()='italique'] | //strong[text()='gras'] | //u[text()='souligné']")) == 3
@@ -256,12 +266,56 @@ title: Étude sur la grâce
     assert (route / "document.xml").is_file()
 
 
+def sitemap_locations(output):
+    sitemap = etree.parse(str(output / "sitemap.xml"))
+    assert sitemap.getroot().tag == "{http://www.sitemaps.org/schemas/sitemap/0.9}urlset"
+    return sitemap.xpath("/s:urlset/s:url/s:loc/text()", namespaces={"s": "http://www.sitemaps.org/schemas/sitemap/0.9"})
+
+
+@pytest.mark.parametrize("base_path", ["/", "/augustinus/"])
+def test_sitemap_and_canonicals_follow_the_published_selection(project, base_path):
+    project.data["publication"].update(origin="https://example.org/", base_path=base_path)
+    project.data["sources"]["selection"] = ["t1.l01.s01"]
+    project.data["editorial"]["home_intro"] = 'Le texte latin & sa traduction "française".'
+    result = build(project)
+    public_base = "https://example.org" + base_path
+    routes = ["", "ressources/", "projet/", "contents/", "t1/l1/s01/"]
+    assert sitemap_locations(result.output) == [public_base + route for route in routes]
+    for route in routes:
+        page = html.parse(str(result.output / route / "index.html"))
+        assert page.xpath('//head/link[@rel="canonical"]/@href') == [public_base + route]
+        assert not page.xpath('//head/meta[@name="robots"]')
+    home = html.parse(str(result.output / "index.html"))
+    assert home.xpath('//head/meta[@name="description"]/@content') == [project.data["editorial"]["home_intro"]]
+    unit = html.parse(str(result.output / "t1/l1/s01/index.html"))
+    assert "Section 1 · Livre 1 · Tome 1" in unit.xpath("string(//head/title)")
+    search = html.parse(str(result.output / "search/index.html"))
+    assert search.xpath('//head/meta[@name="robots"]/@content') == ["noindex"]
+    assert not search.xpath('//head/link[@rel="canonical"]')
+    robots = result.output / "robots.txt"
+    if base_path == "/":
+        assert f"Sitemap: {public_base}sitemap.xml" in robots.read_text(encoding="utf-8")
+    else:
+        assert not robots.exists()
+
+    preview = build(project, only="t1.l01.s01", output=project.path.parent / "preview").output
+    assert not (preview / "sitemap.xml").exists()
+    assert not (preview / "robots.txt").exists()
+    for path in preview.rglob("index.html"):
+        page = html.parse(str(path))
+        assert page.xpath('//head/meta[@name="robots"]/@content') == ["noindex"]
+        assert not page.xpath('//head/link[@rel="canonical"]')
+
+
 def test_static_build_navigation_subdirectory_and_no_source_writes(project):
     before = source_hashes(project)
     project.data["publication"]["base_path"] = "/augustinus/"
     result = build(project)
     assert result.count == 2
     assert_site_links(result.output)
+    assert not (result.output / "sitemap.xml").exists()
+    home = html.parse(str(result.output / "index.html"))
+    assert not home.xpath('//head/link[@rel="canonical"] | //head/meta[@name="robots"]')
     page = html.parse(str(result.output / "t1/l1/s01/index.html"))
     assert page.xpath('//a[@rel="prev"]/@href') == ["../s02/", "../s02/"]
     assert not page.xpath('//a[@rel="next"]')

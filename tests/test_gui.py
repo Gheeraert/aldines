@@ -71,6 +71,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert len(window.leaves()) == 2
     window.fields[("appearance", "font_size")].setValue(22)
     window.fields[("appearance", "text_align")].setCurrentIndex(1)
+    window.fields[("publication", "origin")].setText("https://example.org")
     home_texts = {"home_intro": "Introduction personnalisée", "home_edition": "Une autre description",
                   "home_resources": ""}
     for key, text in home_texts.items():
@@ -84,6 +85,7 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert saved.data["sources"]["selection"] == ["t1.l01.s01"]
     assert saved.data["appearance"]["font_size"] == 22
     assert saved.data["appearance"]["text_align"] == "justify"
+    assert saved.data["publication"]["origin"] == "https://example.org"
     assert {key: saved.data["editorial"][key] for key in home_texts} == home_texts
     window.fields[("appearance", "font_size")].setValue(23)
     assert not window.save_feedback.text()

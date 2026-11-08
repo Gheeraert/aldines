@@ -14,14 +14,16 @@ def publication_footer(meta):
 </footer>'''
 
 
-def editorial_page(meta, title, body, *, root="./", current="accueil"):
+def editorial_page(meta, title, body, *, root="./", current="accueil", seo_tags=""):
     def active(page):
         return ' aria-current="page"' if current == page else ""
 
+    page_title = f"{title} · {meta['title']}" if title else meta["title"]
     return f'''<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(title)} · Augustinus</title>
+<title>{esc(page_title)}</title>
+{seo_tags}
 <link rel="stylesheet" href="{root}assets/editorial.css">
 <link rel="stylesheet" href="{root}assets/footer.css"></head>
 <body class="editorial">
@@ -42,7 +44,7 @@ def editorial_page(meta, title, body, *, root="./", current="accueil"):
 </body></html>'''
 
 
-def home(meta, image, editorial):
+def home(meta, image, editorial, *, seo_tags=""):
     def paragraph(key, attributes=""):
         text = esc(editorial[key].strip()).replace("\n", "<br>")
         return f"<p{attributes}>{text}</p>" if text else ""
@@ -51,10 +53,10 @@ def home(meta, image, editorial):
     alt = esc(editorial["home_alt"])
     figcaption = f"<figcaption>{caption}</figcaption>" if caption else ""
     engraving = ' class="engraving" width="911" height="1416"' if image == FRONTISPICE else ""
-    return editorial_page(meta, "Accueil", f'''<section class="intro" aria-labelledby="titre">
+    return editorial_page(meta, "", f'''<section class="intro" aria-labelledby="titre">
 <div class="intro-copy">
-<h1 id="titre" lang="la">Augustinus</h1>
 <p class="author">Cornelius Jansenius</p>
+<h1 id="titre" lang="la">Augustinus</h1>
 {paragraph('home_intro', ' class="summary"')}
 <a class="read-button" href="contents/">Lire l’édition <span aria-hidden="true">→</span></a>
 </div>
@@ -74,10 +76,10 @@ def home(meta, image, editorial):
 {paragraph('home_resources')}
 <a href="ressources/">Accéder aux ressources <span aria-hidden="true">→</span></a>
 </section>
-</div>''')
+</div>''', seo_tags=seo_tags)
 
 
-def resources(meta, documents):
+def resources(meta, documents, *, seo_tags=""):
     previews = []
     for slug, (title, excerpt) in documents:
         title = esc(title)
@@ -91,20 +93,20 @@ def resources(meta, documents):
     return editorial_page(meta, "Études et ressources", f'''<section class="resource-index" aria-labelledby="resources-title">
 <h2 id="resources-title">Études et ressources</h2>
 {listing}
-</section>''', root="../", current="ressources")
+</section>''', root="../", current="ressources", seo_tags=seo_tags)
 
 
-def editorial_document(meta, document, *, credits=False):
+def editorial_document(meta, document, *, credits=False, seo_tags=""):
     title = "Projet et crédits" if credits else document.title
     back = "" if credits else '<p><a href="../">← Études et ressources</a></p>'
     return editorial_page(meta, title, f'''<article class="resource-index">
 {back}
 <div class="markdown-body">{document.body}</div>
 <p><a href="document.xml" download>Télécharger le XML-TEI</a></p>
-</article>''', root="../" if credits else "../../", current="projet" if credits else "document")
+</article>''', root="../" if credits else "../../", current="projet" if credits else "document", seo_tags=seo_tags)
 
 
-def project_credits(meta):
+def project_credits(meta, *, seo_tags=""):
     fields = [
         ("Auteur", meta.get("author")),
         ("Responsable scientifique", meta.get("editor")),
@@ -128,4 +130,4 @@ def project_credits(meta):
 {description}
 <dl>{details}</dl>
 {''.join(extra)}
-</article>''', root="../", current="projet")
+</article>''', root="../", current="projet", seo_tags=seo_tags)

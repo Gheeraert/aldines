@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 import re
+from urllib.parse import urlsplit
 
 
 class ProjectError(ValueError):
@@ -37,7 +38,7 @@ DEFAULTS = {
     "appearance": {"theme": "light", "font": "EB Garamond", "font_size": 20,
                    "line_height": 1.65, "content_width": 1200, "column_ratio": 50,
                    "text_align": "left"},
-    "publication": {"output": "publication", "base_path": "/"},
+    "publication": {"output": "publication", "base_path": "/", "origin": ""},
 }
 
 
@@ -123,6 +124,16 @@ def validate(data):
     base = data["publication"].get("base_path")
     if not isinstance(base, str) or not re.fullmatch(r"/(?:[A-Za-z0-9_-]+/)*", base):
         raise ProjectError("publication.base_path : / ou /sous-dossier/ attendu.")
+    origin = data["publication"].get("origin", "")
+    if origin != "":
+        label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+        pattern = rf"https?://{label}(?:\.{label})+(?::[0-9]{{1,5}})?/?"
+        if not isinstance(origin, str) or not re.fullmatch(pattern, origin, re.ASCII | re.IGNORECASE):
+            raise ProjectError("publication.origin : adresse HTTP(S) du domaine, sans sous-répertoire.")
+        try:
+            urlsplit(origin).port  # Vérifie que le port, s’il est fourni, est valide.
+        except ValueError as exc:
+            raise ProjectError("publication.origin : port invalide.") from exc
 
 
 def load_project(path):

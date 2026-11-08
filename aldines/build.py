@@ -16,6 +16,7 @@ from .augustinus import read_corpus
 from .config import ProjectError, validate
 from .editorial import FRONTISPICE, editorial_document, home, project_credits, publication_footer, resources
 from .markdown import read_markdown
+from .seo import page_tags, write_sitemap
 
 MARKER = ".aldines-generated"
 
@@ -52,7 +53,7 @@ def link(current, target=""):
     return "./" if rel == "." else rel.rstrip("/") + "/"
 
 
-def page(project, meta, title, body, current="", reader=False):
+def page(project, meta, title, body, current="", reader=False, *, seo_tags=""):
     root = link(current)
     page_class = "edition-page" if reader else {"": "home-page", "contents/": "contents-page"}.get(current, "")
     a = project.data["appearance"]
@@ -75,6 +76,7 @@ def page(project, meta, title, body, current="", reader=False):
 <html lang="fr" data-theme="{a['theme']}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Studio Aldines 0.1">
 <title>{esc(title)} · {esc(meta['title'])}</title>
+{seo_tags}
 <link rel="stylesheet" href="{root}assets/site.css">
 <link rel="stylesheet" href="{root}assets/footer.css"><style>{css}</style>
 <script src="{root}assets/site.js" defer></script></head>
@@ -208,20 +210,31 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
     if not units:
         raise ProjectError("Aucune unité sélectionnée et disponible.")
     meta = publication_metadata(project, corpus)
+    publication = project.data["publication"]
+    origin = publication.get("origin", "").rstrip("/")
+    base_path = publication["base_path"]
+    public_base = origin + base_path if origin and not only else ""
+    sitemap_urls = []
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=".aldines-stage-", dir=output.parent)).resolve()
     (stage / MARKER).write_text("Studio Aldines — dossier généré, remplaçable\n", encoding="utf-8")
     try:
-        def write(route, value):
+        def write(route, render, *args, description="", indexable=True, **kwargs):
+            indexable = indexable and not only
+            canonical = ""
+            if indexable and public_base:
+                canonical = public_base + (route.rstrip("/") + "/" if route else "")
+                sitemap_urls.append(canonical)
+            tags = page_tags(description=description, canonical=canonical, indexable=indexable)
             destination = stage / route / "index.html"
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(value, encoding="utf-8")
+            destination.write_text(render(*args, seo_tags=tags, **kwargs), encoding="utf-8")
 
         def write_document(route, filename, *, credits=False):
             name = Path(filename).name
             progress(f"Conversion Markdown : {name}")
             document = read_markdown(project.resolve(filename))
-            write(route, editorial_document(meta, document, credits=credits))
+            write(route, editorial_document, meta, document, credits=credits, description=document.excerpt)
             (stage / route / "document.xml").write_bytes(document.tei)
             (stage / route / name).write_bytes(document.source)
             return document.title, document.excerpt
@@ -240,7 +253,8 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
                 raise ProjectError(f"Impossible de copier l’image d’accueil {Path(filename).name} : {exc}") from exc
         else:
             shutil.copyfile(bundled_assets / image, assets / image)
-        write("", home(meta, image, editorial))
+        write("", home, meta, image, editorial,
+              description=editorial["home_intro"].strip() or f"Édition numérique de {meta['title']}.")
 
         documents = {}
         for filename in editorial["resources"]:
@@ -252,12 +266,15 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
                 slug = f"{base}-{suffix}"
                 suffix += 1
             documents[slug] = write_document(f"ressources/{slug}", filename)
-        write("ressources", resources(meta, documents.items()))
+        write("ressources", resources, meta, documents.items(),
+              description=editorial["home_resources"].strip() or f"Études et ressources sur {meta['title']}.")
         if editorial["credits"]:
             write_document("projet", editorial["credits"], credits=True)
         else:
-            write("projet", project_credits(meta))
-        write("contents", page(project, meta, "Table des matières", contents(units), "contents/"))
+            write("projet", project_credits, meta,
+                  description=meta.get("description") or f"Projet et crédits de l’édition numérique de {meta['title']}.")
+        write("contents/", page, project, meta, "Table des matières", contents(units), "contents/",
+              description=f"Tomes, livres, sections et chapitres de l’édition numérique de {meta['title']}.")
         anchors = {}
         for u in units:
             for ident in list(u.aliases) + [r.anchor for r in u.rows]:
@@ -266,7 +283,10 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
                 anchors[ident] = u.route
         for i, u in enumerate(units):
             progress(f"{i + 1}/{len(units)} · {u.label} · Livre {u.book}")
-            write(u.route, page(project, meta, u.label, reader_page(u, units, i, anchors), u.route, reader=True))
+            title = f"{u.label} · Livre {u.book} · Tome {u.tome}"
+            excerpt = next((row.french_text or row.latin_text for row in u.rows if row.french_text or row.latin_text), "")
+            write(u.route, page, project, meta, title, reader_page(u, units, i, anchors), u.route, reader=True,
+                  description=f"{title} · {meta['title']}. {excerpt}")
             # Publier le fichier original, sans sérialisation ni modification.
             shutil.copyfile(u.file, stage / u.route / u.file.name)
         search_body = '''<p class="eyebrow">LATIN & FRANÇAIS</p><h1>Rechercher dans l’édition</h1>
@@ -274,7 +294,12 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
 <div class="search-box"><input id="query" type="search" required minlength="2" placeholder="Pélage, gratia…"><select id="search-language" aria-label="Langue"><option value="all">Les deux langues</option><option value="la">Latin</option><option value="fr">Français</option></select><button type="submit">Rechercher</button></div></form>
 <p id="search-status" role="status"></p><ol id="search-results"></ol>
 <script src="../assets/search-data.js" defer></script>'''
-        write("search", page(project, meta, "Recherche", search_body, "search/"))
+        write("search/", page, project, meta, "Recherche", search_body, "search/", indexable=False)
+        if public_base:
+            write_sitemap(stage / "sitemap.xml", sitemap_urls)
+            if base_path == "/":
+                (stage / "robots.txt").write_text(f"User-agent: *\nDisallow:\nSitemap: {public_base}sitemap.xml\n",
+                                                  encoding="utf-8")
         for name in ("site.css", "site.js", "footer.css", "editorial.css"):
             shutil.copyfile(bundled_assets / name, assets / name)
         records = [{"unit": u.label, "book": u.book, "route": u.route, "anchor": r.anchor,
@@ -284,7 +309,7 @@ def build(project, *, only=None, output=None, progress=lambda message: None):
         (assets / "search-data.js").write_text("window.ALDINES_SEARCH = " + search_json + ";\n", encoding="utf-8")
         report = corpus.report()
         report["published_units"] = len(units)
-        report["base_path"] = project.data["publication"]["base_path"]
+        report["base_path"] = base_path
         (stage / "build-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         (stage / "aldines.json").write_text(json.dumps(project.data, ensure_ascii=False, indent=2) + "\n",
                                            encoding="utf-8")
@@ -304,6 +329,10 @@ build-report.json consigne les diagnostics et le nombre d’unités publiées.
                        "source Markdown accompagne sa page HTML et son fichier document.xml.\n")
         if only:
             notice += f"\nAperçu limité à l’unité {only}.\n"
+        elif public_base:
+            notice += f"\nSitemap public : {public_base}sitemap.xml\n"
+            if base_path != "/":
+                notice += f"Ajoutez cette adresse au robots.txt de la racine du domaine : {origin}/robots.txt\n"
         (stage / "LISEZ-MOI.txt").write_text(notice, encoding="utf-8")
         (stage / ".nojekyll").touch()
         # Le site précédent n’est remplacé qu’après la réussite de toute la génération.

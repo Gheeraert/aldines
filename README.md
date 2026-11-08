@@ -70,6 +70,14 @@ Le site contient les pages HTML, CSS, JavaScript et une copie exacte du fichier 
 
 EB Garamond est employée lorsqu’elle est installée sur l’appareil de lecture ; sinon Garamond ou Georgia prend le relais. Le grec dispose de polices de repli spécifiques. Aucune police n’est téléchargée à l’ouverture du site. Les notes, modes de lecture et recherche utilisent JavaScript.
 
+## Référencement
+
+Dans **Publication**, renseignez **Adresse publique du domaine** avec `https://example.org` et **Sous-répertoire web** avec `/augustinus/` si le site est publié à `https://example.org/augustinus/`. Enregistrez le projet pour conserver ces réglages. Dans le JSON, les clés correspondantes sont `publication.origin` et `publication.base_path`.
+
+La génération du site complet écrit `sitemap.xml` avec les adresses absolues des pages publiées et ajoute leur lien canonique dans le HTML. Les pages de recherche interne et d’aperçu portent la directive `noindex`. Si l’adresse du domaine est vide, la génération omet le sitemap et les liens canoniques. [Documentation sur les sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
+
+Pour un site à la racine (`/`), Aldines génère aussi un `robots.txt` qui annonce le sitemap. Pour un site en sous-répertoire, ajoutez `Sitemap: https://example.org/augustinus/sitemap.xml` au `robots.txt` à la racine du domaine, ou soumettez directement l’adresse du sitemap dans Google Search Console. [Documentation sur le fichier robots.txt](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt)
+
 ## Tests et documentation
 
 ```powershell
