@@ -391,44 +391,114 @@ def test_publish_nested_masters_for_three_volumes(project):
     master(t2 / "aug-t2.xml", files)
     t3 = project.directory / "t3"
     t3.mkdir()
-    (t3 / "partiel.xml").write_text(tei(french=False).replace("t1.l01.s01", "t3.l01.c01"), encoding="utf-8")
-    master(t3 / "aug-t3.xml", ["partiel.xml", "a-venir.xml"])
+    romans = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X")
+    chapters = ["gc.l01.c00", "gc.l01.c01", *(f"gc.l{book:02}.c01" for book in range(2, 10)),
+                "gc.l10.c19", "pa.c00"]
+    files = []
+    for chapter in chapters:
+        uid = f"t3.{chapter}"
+        filename = f"aug-{uid.replace('.', '-')}.xml"
+        content = tei(french=chapter != "gc.l01.c01").replace("t1.l01.s01", uid)
+        if chapter == "gc.l01.c00":
+            content = content.replace("Finis.", "medicinalis")
+        elif chapter == "pa.c00":
+            content = content.replace(f'xml:id="{uid}.la"', 'xml:id="edition-locale-t3"')
+        (t3 / filename).write_text(content, encoding="utf-8")
+        files.append(filename)
+    master(t3 / "aug-t3.xml", [*files, "a-venir.xml"])
     master(project.directory / "aug.xml", ["master.xml", "t2/aug-t2.xml", "t3/aug-t3.xml"])
     project.data["sources"]["master"] = "tei/aug.xml"
 
     result = build(project)
     assert_site_links(result.output)
     units = result.corpus.units
+    t3_routes = ["t3/l1/c00/", *(f"t3/l{book}/c01/" for book in range(1, 10)),
+                 "t3/l10/c19/", "t3/l11/c00/"]
     assert [unit.route for unit in units] == ["t1/l1/s02/", "t1/l1/s01/",
                                                *(f"t2/l{book}/c01/" for book in range(1, 10)),
-                                               "t3/l1/c01/"]
-    assert [unit.id for unit in units[2:-1]] == [f"t2.l{book:02}.c01" for book in range(1, 10)]
+                                               *t3_routes]
+    assert [unit.id for unit in units if unit.tome == 2] == [f"t2.l{book:02}.c01" for book in range(1, 10)]
+    assert [unit.id for unit in units if unit.tome == 3] == [
+        "t3.l01.c00", *(f"t3.l{book:02}.c01" for book in range(1, 10)), "t3.l10.c19", "t3.l11.c00",
+    ]
     assert any(issue.file == "a-venir.xml" and issue.level == "warning" for issue in result.corpus.issues)
-    assert units[-1].translated == 0
     contents = html.parse(str(result.output / "contents/index.html"))
+    assert contents.xpath('//h2/text()') == ["Tome 1", "Tome 2", "Tome 3"]
     assert contents.xpath('//h3/text()') == [
-        "Livre 1", "Livre introductif", "De l’état de nature innocente",
-        *(f"De l’état de nature déchue, livre {n}" for n in ("I", "II", "III", "IV")),
-        *(f"De l’état de pure nature, livre {n}" for n in ("I", "II", "III")),
-        "Livre 1",
+        "Livre 1", "Livre introductif", "De l'état de nature innocente",
+        *(f"De l'état de nature déchue, livre {n}" for n in ("I", "II", "III", "IV")),
+        *(f"De l'état de pure nature, livre {n}" for n in ("I", "II", "III")),
+        *(f"De la grâce du Christ Sauveur, livre {n}" for n in romans),
+        "Parallèle et balance de l’erreur des Marseillais",
     ]
     assert contents.xpath('//li[@data-tome="2" and @data-book="1"]/@data-book-label') == ["Livre introductif"]
+    assert contents.xpath('//li[@data-tome="3" and @data-book="1"]/a/text()') == ["Préface", "Chapitre 1"]
+    assert contents.xpath('//li[@data-tome="3" and @data-book="11"]/a/text()') == ["Préface"]
     t2_page = html.parse(str(result.output / "t2/l1/c01/index.html"))
     assert t2_page.xpath('//*[@id="t2.lp.c01.la.s1"]')
     assert "Livre introductif" in t2_page.xpath('string(//nav[@class="breadcrumb"])')
     assert "LIVRE INTRODUCTIF" in t2_page.xpath('string(//p[@class="eyebrow"])')
     assert "Livre introductif" in t2_page.xpath('string(//title)')
+    last_t2 = html.parse(str(result.output / "t2/l9/c01/index.html"))
+    assert last_t2.xpath('//a[@rel="next"]/@href') == ["../../../t3/l1/c00/"] * 2
+    assert last_t2.xpath('//a[@rel="next"]/text()') == ["Préface →"] * 2
     search = (result.output / "assets/search-data.js").read_text(encoding="utf-8")
     assert '"book": 1, "book_label": "Livre introductif", "route": "t2/l1/c01/"' in search
+    search_records = json.loads(search.removeprefix("window.ALDINES_SEARCH = ").removesuffix(";\n"))
+    match, = (r for r in search_records if "medicinalis" in r["la"])
+    assert (match["unit"], match["book_label"], match["route"]) == (
+        "Préface", "De la grâce du Christ Sauveur, livre I", "t3/l1/c00/")
+    preface = html.parse(str(result.output / "t3/l1/c00/index.html"))
+    assert preface.xpath('string(//h1)') == "Préface"
+    assert "Préface" in preface.xpath('string(//nav[@class="breadcrumb"])')
+    assert preface.xpath('string(//title)').startswith("Préface · De la grâce du Christ Sauveur, livre I")
     t3_page = html.parse(str(result.output / "t3/l1/c01/index.html"))
     assert t3_page.xpath('//em[@class="missing"]/text()') == ["Traduction à venir"] * 3
+    assert t3_page.xpath('//a[@rel="prev"]/text()') == ["← Préface"] * 2
+    assert all((result.output / route / "index.html").is_file() for route in t3_routes)
 
-    project.data["books"] = {"t2.lp": "Livre proémial", "t2.nl-l1": "Nature déchue — Livre 1"}
+    project.data["books"] = {"t2.lp": "Livre proémial", "t2.nl-l1": "Nature déchue — Livre 1",
+                             **{f"t3.gc-l{book}": f"Grâce — Livre {n}" for book, n in enumerate(romans, 1)},
+                             "t3.pa": "Parallèle et balance"}
     project.save()
-    relabelled = read_corpus(load_project(project.path)).units
+    updated = build(load_project(project.path))
+    relabelled = updated.corpus.units
     assert relabelled[2].book_label == "Livre proémial"
     assert relabelled[4].book_label == "Nature déchue — Livre 1"
+    assert relabelled[-2].book_label == "Grâce — Livre X"
+    assert relabelled[-1].book_label == "Parallèle et balance"
     assert [unit.route for unit in relabelled] == [unit.route for unit in units]
+    assert html.parse(str(updated.output / "contents/index.html")).xpath('//h3/text()')[-1] == "Parallèle et balance"
+
+
+@pytest.mark.parametrize("uid,reason", [
+    ("t3.gc.c01", "exige un numéro de livre"),
+    ("t3.pa.l01.c01", "ne comporte pas de livres"),
+    ("t3.zz.c01", "code de partie inconnu"),
+    ("t3.gc.l11.c01", "livre 11 hors table"),
+])
+@pytest.mark.parametrize("from_filename", [False, True])
+def test_invalid_named_identity(project, uid, reason, from_filename):
+    filename = f"aug-{uid.replace('.', '-')}.xml" if from_filename else "aug-t3-gc-l01-c01.xml"
+    edition_id = "edition-locale" if from_filename else f"{uid}.la"
+    (project.directory / filename).write_text(
+        tei().replace('xml:id="t1.l01.s01.la"', f'xml:id="{edition_id}"'), encoding="utf-8")
+    project.data["sources"]["master"] = f"tei/{filename}"
+    error, = read_corpus(project).errors
+    assert uid in error.message and reason in error.message
+    with pytest.raises(ProjectError, match=reason):
+        build(project)
+
+
+def test_generated_anchor_yields_to_real_tei_id(project):
+    preface = tei().replace("t1.l01.s01", "t3.gc.l01.c00").replace(
+        "<head>TITRE ", '<head xml:id="t3.l01.c00.block2">TITRE ', 1)
+    (project.directory / "a.xml").write_text(preface, encoding="utf-8")
+    result = build(project)
+    assert_site_links(result.output)
+    page = html.parse(str(result.output / "t3/l1/c00/index.html"))
+    assert page.xpath('//div[@data-anchor="t3.l01.c00.block2"]//*[@id="t3.l01.c00.block2"]')
+    assert page.xpath('//*[@id="t3.l01.c00.block2.1"]/@class') == ["aligned-row block "]
 
 
 def test_failures_preserve_previous_site_and_protect_other_directories(project):

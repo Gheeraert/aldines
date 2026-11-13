@@ -15,6 +15,7 @@ from lxml import html
 from aldines.config import load_project
 from aldines.__main__ import main
 from aldines.gui import Window
+from conftest import tei
 
 
 def wait_for_worker(window):
@@ -36,6 +37,23 @@ def test_gui_loads_a_project_only_when_requested(monkeypatch, tmp_path):
     main(["gui"])
     main(["gui", str(project)])
     assert launched == [None, str(project)]
+
+
+def test_gui_lists_tome_three_preface(project):
+    app = QApplication.instance() or QApplication([])
+    path = project.directory / "aug-t3-gc-l01-c00.xml"
+    path.write_text(tei().replace("t1.l01.s01", "t3.gc.l01.c00"), encoding="utf-8")
+    project.data["sources"]["master"] = f"tei/{path.name}"
+    project.save()
+    window = Window()
+    window.open_project(project.path)
+    wait_for_worker(window)
+    leaf, = window.leaves()
+    assert leaf.parent().text(0) == "Tome 3 · De la grâce du Christ Sauveur, livre I"
+    assert leaf.text(0) == f"Préface — {path.name}"
+    assert leaf.data(0, Qt.UserRole) == "t3.l01.c00"
+    assert window.preview_unit.itemText(0).endswith(" · Préface")
+    window.close()
 
 
 def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch):
