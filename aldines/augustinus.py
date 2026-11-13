@@ -210,7 +210,10 @@ class Reader:
             return None
         tome, part, book, kind, number, default_book_label = identity
         uid = f"t{tome}.l{book:02}.{kind}{number:02}"
-        label = f"{'Section' if kind == 's' else 'Chapitre'} {number}"
+        if kind == "c" and number == 0:
+            label = "Préface"
+        else:
+            label = f"{'Section' if kind == 's' else 'Chapitre'} {number}"
         book_label = self.project.data.get("books", {}).get(f"t{tome}.{part}", default_book_label).strip()
         meta = metadata(root)
         source = root.find("./t:teiHeader//t:sourceDesc", NS)
