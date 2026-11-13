@@ -23,16 +23,23 @@ LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 KNOWN = set("text body div p s head trailer note quote title foreign hi milestone pb cb fw lb "
             "sic corr unclear gap choice abbr expan lg l ref seg name num date emph supplied del add".split())
 # Les numéros internes font partie des URL et des sélections déjà enregistrées.
-TOME2_BOOKS = {
-    "lp": (1, "Livre introductif"),
-    "ni": (2, "De l’état de nature innocente"),
-    "nl-l1": (3, "De l’état de nature déchue, livre I"),
-    "nl-l2": (4, "De l’état de nature déchue, livre II"),
-    "nl-l3": (5, "De l’état de nature déchue, livre III"),
-    "nl-l4": (6, "De l’état de nature déchue, livre IV"),
-    "np-l1": (7, "De l’état de pure nature, livre I"),
-    "np-l2": (8, "De l’état de pure nature, livre II"),
-    "np-l3": (9, "De l’état de pure nature, livre III"),
+NAMED_PARTS = {
+    2: {
+        "lp": (1, "Livre introductif"),
+        "ni": (2, "De l'état de nature innocente"),
+        "nl-l1": (3, "De l'état de nature déchue, livre I"),
+        "nl-l2": (4, "De l'état de nature déchue, livre II"),
+        "nl-l3": (5, "De l'état de nature déchue, livre III"),
+        "nl-l4": (6, "De l'état de nature déchue, livre IV"),
+        "np-l1": (7, "De l'état de pure nature, livre I"),
+        "np-l2": (8, "De l'état de pure nature, livre II"),
+        "np-l3": (9, "De l'état de pure nature, livre III"),
+    },
+    3: {
+        **{f"gc-l{book}": (book, f"De la grâce du Christ Sauveur, livre {roman}")
+           for book, roman in enumerate(("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"), 1)},
+        "pa": (11, "Parallèle et balance de l’erreur des Marseillais"),
+    },
 }
 
 
@@ -89,20 +96,29 @@ def metadata(root):
 
 
 def unit_identity(value):
-    """Identifiants numériques de tous les tomes et parties nommées du tome II."""
-    numeric = re.search(r"t(\d+)\.l(\d+)\.([sc])(\d+)", value)
+    """Lit une identité numérique ou vérifie une partie nommée dans la table."""
+    numeric = re.search(r"(?:^|\.)t(\d+)\.l(\d+)\.([sc])(\d+)(?=\.|$)", value)
     if numeric:
         tome, book, kind, number = numeric.groups()
         book = int(book)
         return int(tome), f"l{book}", book, kind, int(number), f"Livre {book}"
-    named = re.search(r"t2\.(lp|ni|nl|np)(?:\.l(\d+))?\.c(\d+)(?=\.|$)", value)
+    named = re.search(r"(?:^|\.)t(\d+)\.([a-z][a-z0-9]*)(?:\.l(\d+))?\.c(\d+)(?=\.|$)", value)
     if named:
-        part, sub_book, number = named.groups()
-        if sub_book is not None:
-            part = f"{part}-l{int(sub_book)}"
-        if part in TOME2_BOOKS:
-            book, book_label = TOME2_BOOKS[part]
-            return 2, part, book, "c", int(number), book_label
+        tome, code, sub_book, number = named.groups()
+        tome = int(tome)
+        books = NAMED_PARTS.get(tome, {})
+        part = code if sub_book is None else f"{code}-l{int(sub_book)}"
+        if part not in books:
+            if code in books:
+                reason = f"la partie « {code} » ne comporte pas de livres"
+            elif any(key.startswith(f"{code}-l") for key in books):
+                reason = (f"la partie « {code} » exige un numéro de livre" if sub_book is None
+                          else f"livre {int(sub_book)} hors table pour la partie « {code} »")
+            else:
+                reason = f"code de partie inconnu « {code} » au tome {tome}"
+            raise ValueError(f"Identité Augustinus « {value} » invalide : {reason}.")
+        book, book_label = books[part]
+        return tome, part, book, "c", int(number), book_label
     return None
 
 
@@ -184,7 +200,11 @@ class Reader:
             self.issue("error", path, 'Aucun div type="edition".', root)
             return None
         # L’identité vient du TEI ; le nom de fichier n’est qu’un dernier recours.
-        identity = unit_identity(ed.get(XID, "")) or unit_identity(path.stem.replace("-", "."))
+        try:
+            identity = unit_identity(ed.get(XID, "")) or unit_identity(path.stem.replace("-", "."))
+        except ValueError as exc:
+            self.issue("error", path, str(exc), ed)
+            return None
         if identity is None:
             self.issue("error", path, "Identité Augustinus introuvable (tome/livre/section ou chapitre).", ed)
             return None
@@ -227,13 +247,23 @@ class Reader:
         fheads = list(fr.iter(T + "head")) if fr is not None else []
         head_index = 0
         serial = 0
+        generated_anchors = set()
+
+        def available_anchor(base):
+            anchor = base
+            suffix = 1
+            while anchor in self.ids or anchor in generated_anchors:
+                anchor = f"{base}.{suffix}"
+                suffix += 1
+            generated_anchors.add(anchor)
+            return anchor
 
         def emit(e, paragraph_style=""):
             nonlocal head_index, serial
             name = tag(e)
             ident = e.get(XID)
             serial += 1
-            anchor = ident or f"{uid}.block{serial}"
+            anchor = ident or available_anchor(f"{uid}.block{serial}")
             if name == "s":
                 matches = mapping.get(ident, [])
                 if not ident:
@@ -255,17 +285,18 @@ class Reader:
                 if name != "div":
                     unit.rows.append(Row(anchor, "", "", kind="paragraph " + style))
                 if e.text and e.text.strip():
-                    unit.rows.append(Row(f"{anchor}.text", esc(e.text), "", kind="block"))
+                    unit.rows.append(Row(available_anchor(f"{anchor}.text"), esc(e.text), "", kind="block"))
                 for ch in e:
                     emit(ch, paragraph_style)
                     if ch.tail and ch.tail.strip():
-                        unit.rows.append(Row(f"{uid}.tail{len(unit.rows)}", esc(ch.tail), "", kind="block"))
+                        anchor = available_anchor(f"{uid}.tail{len(unit.rows)}")
+                        unit.rows.append(Row(anchor, esc(ch.tail), "", kind="block"))
             else:
                 unit.rows.append(Row(anchor, renderer.render(e), "", kind="block"))
         emit(ed)
         for s in orphan:
-            unit.rows.append(Row(s.get(XID) or f"{uid}.orphan{len(unit.rows)}", "", renderer.render(s),
-                                 french_text=clean(s)))
+            anchor = s.get(XID) or available_anchor(f"{uid}.orphan{len(unit.rows)}")
+            unit.rows.append(Row(anchor, "", renderer.render(s), french_text=clean(s)))
         # Conserver aussi le texte français hors phrases et hors titres (rare).
         if fr is not None:
             extras = []
@@ -283,7 +314,7 @@ class Reader:
                         extras.append(esc(child.tail))
             outside(fr)
             if extras:
-                unit.rows.append(Row(f"{uid}.fr.extra", "", "".join(extras), kind="block"))
+                unit.rows.append(Row(available_anchor(f"{uid}.fr.extra"), "", "".join(extras), kind="block"))
                 self.issue("warning", path, "Texte français hors phrases alignées conservé en fin d’unité.", fr)
         # Les conteneurs non rendus (div, paragraphes français) gardent une ancre
         # au plus près de leur première phrase, sans déplacer les xml:id réels.
