@@ -29,6 +29,21 @@ def test_header_uses_project_subtitle_without_added_laboratory(project, subtitle
     assert 'CEREdI' not in doc.xpath('string(//header)')
 
 
+@pytest.mark.parametrize("author", ["Cornelius <Jansenius>", ""])
+def test_current_title_in_editorial_and_reading_headers(project, author):
+    project.data["corpus"].update(title="Augustinus & alii", author=author)
+    if not author:
+        for path in project.directory.glob("[ab].xml"):
+            source = path.read_text(encoding="utf-8")
+            path.write_text(source.replace("<author>Auteur TEI</author>", ""), encoding="utf-8")
+    output = build(project).output
+    for route in ("", "ressources", "projet", "contents", "search", "t1/l1/s01"):
+        document = html.parse(str(output / route / "index.html"))
+        brand = document.xpath('//header/a[@class="brand"]/span')[0]
+        assert brand.xpath('./cite/text()') == ["Augustinus & alii"]
+        assert brand.xpath('./text()') == ([f"{author}, "] if author else [])
+
+
 def test_complete_reading_controls_and_editor_alignment_on_edition_pages(project):
     project.data['appearance']['text_align'] = 'justify'
     result = build(project)

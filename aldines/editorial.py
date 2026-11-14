@@ -5,6 +5,15 @@ from html import escape as esc
 FRONTISPICE = "frontispice-1641.webp"
 
 
+def publication_heading(meta):
+    author = (meta.get("author") or "").strip()
+    title = (meta.get("title") or "").strip()
+    heading = f"<cite>{esc(title)}</cite>" if title else ""
+    if author:
+        heading = f"{esc(author)}, {heading}" if heading else esc(author)
+    return f"<span>{heading}<small>{esc(meta.get('subtitle', ''))}</small></span>"
+
+
 def publication_footer(meta):
     license_text = meta.get("license") or "Licence des contenus non renseignée."
     return f'''<footer class="site-footer">
@@ -30,7 +39,7 @@ def editorial_page(meta, title, body, *, root="./", current="accueil", seo_tags=
 <a class="skip-link" href="#main">Aller au contenu</a>
 <header class="editorial-header">
 <a class="brand" href="{root}"{active('accueil')}>
-<span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
+{publication_heading(meta)}</a>
 <nav aria-label="Navigation principale">
 <a href="{root}contents/">Édition</a>
 <a href="{root}ressources/"{active('ressources')}>Études et ressources</a>

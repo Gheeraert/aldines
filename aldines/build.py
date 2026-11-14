@@ -14,7 +14,9 @@ from urllib.parse import quote
 from . import __version__
 from .augustinus import read_corpus
 from .config import ProjectError, validate
-from .editorial import FRONTISPICE, editorial_document, home, project_credits, publication_footer, resources
+from .editorial import (
+    FRONTISPICE, editorial_document, home, project_credits, publication_footer, publication_heading, resources,
+)
 from .markdown import read_markdown
 from .seo import page_tags, write_sitemap
 
@@ -83,7 +85,7 @@ def page(project, meta, title, body, current="", reader=False, *, seo_tags=""):
 <body class="{classes}" data-mode="{reading['default_mode']}" data-root="{root}" data-alignment="{a['text_align']}">
 <a class="skip" href="#main">Aller au contenu</a>
 <header class="site-header{' reading-header' if reader else ''}"><a class="brand" href="{root}">
-<span>{esc(meta['title'])}<small>{esc(meta.get('subtitle', ''))}</small></span></a>
+{publication_heading(meta)}</a>
 <div class="header-controls"><nav aria-label="Navigation principale"><a href="{root}contents/">Sommaire</a><a href="{root}search/">Rechercher</a>
 <button id="theme-toggle" aria-label="Changer le thème">Clair / sombre</button></nav>{toolbar}</div></header>
 {panel}<main id="main" class="{page_class}">{body}</main>

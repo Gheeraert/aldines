@@ -198,6 +198,14 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
         scroll.setWidgetResizable(True)
         container = QWidget()
         form = QFormLayout(container)
+        for key, label, hint in (
+            ("author", "Auteur", "Nom affiché avant le titre dans le bandeau du site."),
+            ("title", "Titre", "Titre de l’œuvre, affiché en italique dans le bandeau du site."),
+            ("subtitle", "Sous-titre", "Texte affiché sous le titre courant."),
+        ):
+            widget = self.field("corpus", key, QLineEdit())
+            widget.setToolTip(hint)
+            form.addRow(label, widget)
         self.home_controls = QGroupBox("Page d’accueil")
         home_form = QFormLayout(self.home_controls)
         image_row = QHBoxLayout()
@@ -222,7 +230,7 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
             home_form.addRow(label, text)
         self.home_controls.setEnabled(False)
         form.addRow(self.home_controls)
-        labels = {"id": "Identifiant", "title": "Titre", "subtitle": "Sous-titre", "author": "Auteur",
+        labels = {"id": "Identifiant",
                   "editor": "Responsable scientifique", "contributors": "Contributions (une par ligne)",
                   "institution": "Institution", "laboratory": "Laboratoire", "description": "Présentation",
                   "source_edition": "Édition de référence", "source_edition_url": "Lien vers la numérisation",
@@ -230,6 +238,8 @@ QScrollArea{border:0}QCheckBox{padding:6px 0}QStatusBar{background:#e8ecdf}
                   "status": "État d’avancement", "publication_date": "Date de publication", "version": "Version",
                   "license": "Licence des contenus", "citation": "Formule de citation", "identifiers": "Identifiants pérennes (un par ligne)"}
         for key in DEFAULTS["corpus"]:
+            if key not in labels:
+                continue
             widget = QPlainTextEdit() if key in ("contributors", "description", "languages", "identifiers", "citation", "source_edition") else QLineEdit()
             if isinstance(widget, QPlainTextEdit):
                 widget.setMaximumHeight(80)

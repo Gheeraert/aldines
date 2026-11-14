@@ -88,6 +88,11 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.save_button.isEnabled()
     assert window.home_controls.isEnabled()
     assert len(window.leaves()) == 2
+    author_field = window.fields[("corpus", "author")]
+    title_field = window.fields[("corpus", "title")]
+    assert author_field.geometry().top() < title_field.geometry().top() < window.home_controls.geometry().top()
+    author_field.setText("Cornelius Jansenius")
+    title_field.setText("Augustinus")
     window.fields[("appearance", "font_size")].setValue(22)
     window.fields[("appearance", "text_align")].setCurrentIndex(1)
     window.fields[("publication", "origin")].setText("https://example.org")
@@ -104,6 +109,8 @@ def test_qt_open_select_save_preview_and_publish(project, tmp_path, monkeypatch)
     assert window.save_feedback.text() == "Projet enregistré."
     assert not window.dirty
     saved = load_project(project.path)
+    assert saved.data["corpus"]["author"] == "Cornelius Jansenius"
+    assert saved.data["corpus"]["title"] == "Augustinus"
     assert saved.data["sources"]["selection"] == ["t1.l01.s01"]
     assert saved.data["appearance"]["font_size"] == 22
     assert saved.data["appearance"]["text_align"] == "justify"
